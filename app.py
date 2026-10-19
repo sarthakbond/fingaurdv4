@@ -3,6 +3,12 @@ FinGuard — Financial Deepfake & Scam Detector
 Main application entry point with security hardening, temp file isolation,
 calibrated 3-tier verdicts, and SEBI SCORES complaint generation.
 """
+import sys
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,12 +17,12 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any
 import shutil, os, uuid
 
-from src.config import settings, get_threshold
+from src.config import settings, get_threshold, get_stage_config
 from src.stages.stage1_ingest import run_stage1_ingest
 from src.stages.stage2_vision import run_stage2_vision
 from src.stages.stage3_audio import run_stage3_audio
 from src.stages.stage4_transcription import run_stage4_transcription
-from src.stages.stage5_llm import run_stage5_llm
+from src.stages.stage5_llm import run_stage5_llm, warm_up_ollama
 from src.stages.stage6_registry import run_stage6_registry
 from src.stages.stage7_ocr import run_stage7_ocr
 from src.stages.stage8_report import generate_sebi_scores_complaint
@@ -44,6 +50,18 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory job store
 jobs: dict = {}
+
+@app.on_event("startup")
+async def on_startup():
+    """Warms up local Ollama instance in background so inference doesn't cold load."""
+    import threading
+    def _warmup():
+        cfg = get_stage_config("stage5_llm")
+        api_url = cfg.get("api_url", "http://localhost:11434/api/chat")
+        model_id = cfg.get("model_id", "llama3.1:latest")
+        print(f"[FinGuard Startup] Pre-warming Ollama LLM ({model_id})...")
+        warm_up_ollama(api_url, model_id)
+    threading.Thread(target=_warmup, daemon=True).start()
 
 def validate_file_size(file: UploadFile):
     """Guards against oversized uploads causing memory/disk exhaustion."""

@@ -61,22 +61,31 @@ def normalize_phonetic_financial_speech(text: str) -> str:
     
     return cleaned
 
+def normalize_transcript(text: str) -> str:
+    """Normalizes informal speech transcriptions to standard analytical text."""
+    if not text:
+        return ""
+    text = re.sub(r"(?i)\bdm\s*2\b", "DM to", text)
+    text = re.sub(r"(?i)(\d+(?:\.\d+)?)\s*(?:percent|per\s*cent)\b", r"\1%", text)
+    return text
+
+_CUDA_WHISPER_AVAILABLE = True
+
 def run_stage4_transcription(audio_path: str, job_id: str):
     """
-    Transcribes audio using faster-whisper with phonetic financial normalization.
+    Transcribes audio using faster-whisper with phonetic financial normalization
+    and domain-specific vocabulary conditioning (SEBI, PMS, delta-neutral, etc.).
     Returns:
         dict: {
             "transcript": str,
             "segments": list[dict] # {"start": float, "end": float, "text": str}
         }
     """
-_CUDA_WHISPER_AVAILABLE = True
-
-def run_stage4_transcription(audio_path: str, job_id: str):
     global _CUDA_WHISPER_AVAILABLE
     print(f"[{job_id}] Running Stage 4: Transcription")
     stage_config = get_stage_config("stage4_transcription")
     model_size = stage_config.get("model_id", "Systran/faster-whisper-medium").split("-")[-1]
+    initial_prompt = stage_config.get("initial_prompt", "Indian stock market talk. Terms: SEBI, PMS, delta-neutral, arbitrage, F&O, Nifty, Bank Nifty, copy trading, DM to mirror, automated execution, percent, monthly returns, INA registration.")
     # C2: Respect config hardware.device — fall back to CPU if use_cpu forced or CUDA unavailable
     use_cpu = stage_config.get("use_cpu", False)
     if use_cpu or not _CUDA_WHISPER_AVAILABLE or not torch.cuda.is_available():
@@ -96,12 +105,13 @@ def run_stage4_transcription(audio_path: str, job_id: str):
         print(f"[{job_id}] No audio track provided. Skipping transcription stage.")
         return result
         
-    def _do_transcribe(dev, ctype):
-        m = WhisperModel(model_size, device=dev, compute_type=ctype)
-        segs, _ = m.transcribe(audio_path, beam_size=5)
+    def _do_transcribe(m_name, dev, ctype):
+        m = WhisperModel(m_name, device=dev, compute_type=ctype)
+        segs, _ = m.transcribe(audio_path, beam_size=5, initial_prompt=initial_prompt)
         out_segs = []
         for s in segs:
             clean_text = normalize_phonetic_financial_speech(s.text.strip())
+            clean_text = normalize_transcript(clean_text)
             out_segs.append({
                 "start": round(s.start, 2),
                 "end": round(s.end, 2),
@@ -112,19 +122,13 @@ def run_stage4_transcription(audio_path: str, job_id: str):
     try:
         try:
             print(f"[{job_id}] Loading Whisper Model: {model_size} on {whisper_device} ({compute_type})...")
-            model, extracted_segments = _do_transcribe(whisper_device, compute_type)
-        except Exception as e_cuda:
-            if whisper_device == "cuda":
-                print(f"[{job_id}] CUDA Whisper inference failed ({e_cuda}). Falling back seamlessly to CPU (int8)...")
-                _CUDA_WHISPER_AVAILABLE = False
-                whisper_device = "cpu"
-                compute_type = "int8"
-                model, extracted_segments = _do_transcribe("cpu", "int8")
-            else:
-                raise e_cuda
+            model, extracted_segments = _do_transcribe(model_size, whisper_device, compute_type)
+        except Exception as e_primary:
+            print(f"[{job_id}] Whisper {model_size} failed ({e_primary}). Falling back to 'small' on CPU (int8)...")
+            model, extracted_segments = _do_transcribe("small", "cpu", "int8")
 
         result["segments"] = extracted_segments
-        result["transcript"] = " ".join(s["text"] for s in extracted_segments)
+        result["transcript"] = normalize_transcript(" ".join(s["text"] for s in extracted_segments))
         print(f"[{job_id}] Transcription complete. Extracted {len(result['segments'])} segments: '{result['transcript'][:60]}...'")
         
     except Exception as e:

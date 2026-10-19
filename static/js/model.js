@@ -62,12 +62,13 @@ const REGISTRY_READING = {
 /* ── Scam signal labels (keys come from SIGNAL_WEIGHTS in stage5_llm.py) ─── */
 
 export const SIGNAL_LABELS = {
-  explicit_returns:  'Guaranteed returns',
-  implied_returns:   'Implied returns',
-  urgency_scarcity:  'Urgency and scarcity',
-  social_proof:      'Inflated social proof',
-  paywall_push:      'Paywall push',
-  credential_misrep: 'Credential misrepresentation',
+  explicit_returns:          'Guaranteed returns',
+  implied_returns:           'Implied returns',
+  unregistered_solicitation: 'Unregistered solicitation',
+  urgency_scarcity:          'Urgency and scarcity',
+  social_proof:              'Inflated social proof',
+  paywall_push:              'Paywall push',
+  credential_misrep:         'Credential misrepresentation',
 };
 
 /* ── Quoted-claim groups (fields come from the SEBIAnalysis model) ───────── */
@@ -244,9 +245,13 @@ export function toViewModel(raw, meta = {}) {
           ? 'No transcript or text reached the compliance stage.'
           : 'No quoted claim matched a scam signal.',
     count: quotedCount,
-    detail: Object.entries(SIGNAL_LABELS)
-      .filter(([key]) => key in signalScores)
-      .map(([key, label]) => [label, `${Math.round((signalScores[key] || 0) * 100)}%`]),
+    detail: [
+      sebi.analysis_engine ? ['Engine', sebi.analysis_engine === 'ollama_llama3.1' ? 'Llama 3.1 (Ollama)' : 'Heuristic Safety Net'] : null,
+      sebi.fallback_reason ? ['Engine notice', sebi.fallback_reason] : null,
+      ...Object.entries(SIGNAL_LABELS)
+        .filter(([key]) => key in signalScores)
+        .map(([key, label]) => [label, `${Math.round((signalScores[key] || 0) * 100)}%`]),
+    ].filter(Boolean),
   });
 
   // 4 · SEBI / entity verification

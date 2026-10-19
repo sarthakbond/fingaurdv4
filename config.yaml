@@ -18,6 +18,14 @@ thresholds:
   scam_composite_threshold: 0.35
   # Auto-flag threshold inside LLM stage when composite risk exceeds this
   llm_risk_auto_flag_threshold: 0.45
+  # Severity per signal (used by noisy-OR scoring)
+  severity_explicit_returns: 1.0
+  severity_implied_returns: 0.8
+  severity_unregistered_solicitation: 0.9
+  severity_credential_misrep: 0.7
+  severity_paywall_push: 0.6
+  severity_urgency_scarcity: 0.35
+  severity_social_proof: 0.3
   # Registry fuzzy match thresholds
   registry_name_number_match_score: 65
   registry_name_only_match_score: 80
@@ -65,13 +73,13 @@ pipeline:
     model_id: "Systran/faster-whisper-medium"
     compute_type: "int8"
     use_cpu: true
+    initial_prompt: "Indian stock market talk. Terms: SEBI, PMS, delta-neutral, arbitrage, F&O, Nifty, Bank Nifty, copy trading, DM to mirror, automated execution, percent, monthly returns, INA registration."
     
   stage5_llm:
     model_id: "llama3.1:latest"
     api_url: "http://localhost:11434/api/chat"
-    # Timeout (seconds) for short transcripts (<400 chars)
+    timeout_sec: 25        # was 3.5 / 30 - 3.5s caused the fallback on short clips
     timeout_short_sec: 3.5
-    # Timeout (seconds) for long video transcripts
     timeout_long_sec: 30.0
     
   stage6_registry:
