@@ -10,7 +10,7 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -63,6 +63,19 @@ os.makedirs("temp", exist_ok=True)
 
 # Serve static assets
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/", response_class=FileResponse)
+@app.get("/analyze", response_class=FileResponse)
+@app.get("/features", response_class=FileResponse)
+@app.get("/how-it-works", response_class=FileResponse)
+@app.get("/technology", response_class=FileResponse)
+@app.get("/analysis", response_class=FileResponse)
+@app.get("/results", response_class=FileResponse)
+async def serve_spa():
+    index_file = os.path.join("static", "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return HTMLResponse("<h1>FinGuard Backend Running</h1>", status_code=200)
 
 # In-memory job store
 jobs: dict = {}
@@ -123,7 +136,8 @@ def build_evidence_breakdown(
     audio_score: float = 0.0,
     vision_score: float = 0.0,
     domain_scan: Optional[dict] = None,
-    degraded_modules: Optional[list] = None
+    degraded_modules: Optional[list] = None,
+    ai_watermark: Optional[dict] = None
 ) -> dict:
     """
     Synthesizes and explains all contributing signals across media authenticity,
@@ -133,6 +147,9 @@ def build_evidence_breakdown(
     signals = []
     vision_thresh = get_vision_threshold()
     audio_thresh = get_threshold("audio_fake_threshold", 0.5)
+
+    if ai_watermark and ai_watermark.get("watermark_detected"):
+        signals.append(f"AI Provenance: {ai_watermark.get('details')}")
 
     if vision_score is not None and vision_score > vision_thresh:
         signals.append(f"Visual synthetic/deepfake artifacts detected (score: {vision_score:.2f})")
@@ -309,6 +326,8 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         # Stage 1: Ingest
         jobs[job_id]["stage"] = "stage1_ingest"
         ingest = run_stage1_ingest(file_path, temp_job_dir, job_id)
+        ai_watermark = ingest.get("ai_watermark", {})
+        has_ai_watermark = bool(ai_watermark.get("watermark_detected"))
 
         # Stage 2: Vision
         jobs[job_id]["stage"] = "stage2_vision"
@@ -318,9 +337,15 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         jobs[job_id]["stage"] = "stage4_transcription"
         tx = run_stage4_transcription(ingest.get("audio_path"), job_id)
 
-        # Stage 3: Audio (uses transcript for impersonation check)
+        # Stage 3: Audio (uses transcript for impersonation check + provenance + vision score)
         jobs[job_id]["stage"] = "stage3_audio"
-        audio = run_stage3_audio(ingest.get("audio_path"), job_id, transcript=tx.get("transcript", ""))
+        audio = run_stage3_audio(
+            ingest.get("audio_path"),
+            job_id,
+            transcript=tx.get("transcript", ""),
+            ai_watermark_detected=has_ai_watermark,
+            vision_score=vision.get("max_score", 0.0)
+        )
 
         # Stage 7 (video keyframe OCR): extract on-screen text with visual deduplication
         # and timestamp tracking, so both financial risk (Stage 5) and domain/phishing checks (Stage 9)
@@ -349,7 +374,6 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         jobs[job_id]["stage"] = "stage8_report"
         
         # Stage 7: Aggregation & Final Verdict
-        # Stage 7: Aggregation & Final Verdict
         jobs[job_id]["stage"] = "stage7_aggregation"
         vision_thresh = get_vision_threshold()
         audio_thresh  = get_threshold("audio_fake_threshold", 0.5)
@@ -376,9 +400,9 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         else:
             audio_score = 0.0 if audio.get("status") != "error" else None
 
-        has_vision_fake = (vision_score is not None and vision_score > vision_thresh)
-        has_audio_fake = (audio_score is not None and audio_score > audio_thresh)
-        is_deepfake = bool(has_vision_fake or has_audio_fake)
+        has_vision_fake = (vision_score is not None and vision_score > vision_thresh) or has_ai_watermark
+        has_audio_fake = (audio_score is not None and audio_score > audio_thresh) or has_ai_watermark
+        is_deepfake = bool(has_vision_fake or has_audio_fake or has_ai_watermark)
 
         is_scam = bool(llm.get("is_scam_likely", False))
         if stage9.get("any_threat_detected"):
@@ -404,7 +428,8 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
             audio_score=audio_score if audio_score is not None else 0.0,
             vision_score=vision_score if vision_score is not None else 0.0,
             domain_scan=stage9.get("ocr_domain_result"),
-            degraded_modules=degraded_modules
+            degraded_modules=degraded_modules,
+            ai_watermark=ai_watermark
         )
 
         overall_summary = build_overall_verdict_summary(
@@ -427,6 +452,7 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
             "evidence_breakdown": evidence_breakdown,
             "overall_summary": overall_summary,
             "vision_score": vision_score,
+            "ai_watermark": ai_watermark,
             "vision_temporal_variance": vision.get("temporal_variance", 0.0),
             "vision_frame_scores": vision.get("frame_scores", []),
             "vision_aggregation_details": vision.get("aggregation_details", {}),

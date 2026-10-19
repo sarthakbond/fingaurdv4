@@ -45,13 +45,13 @@ export function mapVerdictLabel(rawVerdict, isDeepfake, isScam, degraded = false
   if (v.includes('deepfake') || isDeepfake) {
     return 'Possible AI-generated or altered content';
   }
-  if (v.includes('scam') || v.includes('violation') || isScam) {
+  if (isScam || (v.includes('scam') && !v.includes('no scam')) || (v.includes('violation') && !v.includes('no violation'))) {
     return 'Possible scam detected';
   }
   if (v.includes('review') || v.includes('suspicious')) {
     return 'Review recommended';
   }
-  if (v.includes('safe') || v.includes('clean')) {
+  if (v.includes('safe') || v.includes('clean') || v.includes('no clear warning')) {
     return 'No clear warning signs found';
   }
   return 'Review recommended';
@@ -282,21 +282,34 @@ export function toViewModel(raw, meta = {}) {
     };
   } else {
     const isVisionFlagged = visionScore >= 0.50;
+    const evaluatedFaces = raw.vision_aggregation_details?.frames_evaluated ?? (arr(raw.vision_frame_scores).length);
+    const noFacesDetected = visionScore === 0.0 && evaluatedFaces === 0 && (raw.scan_type === 'video' || meta.mode === 'video');
+
     videoModality = {
       available: true,
       title: 'Video Authenticity',
-      status: isVisionFlagged ? 'Visual manipulation indicated' : 'No visual manipulation detected',
+      status: noFacesDetected
+        ? 'No human faces detected'
+        : isVisionFlagged
+          ? 'Visual manipulation indicated'
+          : 'No visual manipulation detected',
       score: visionScore,
-      scoreFormatted: `${(visionScore * 100).toFixed(1)}%`,
-      summary: isVisionFlagged
-        ? 'Facial regions scored above the manipulation threshold. Spatial and frequency residuals indicate potential deepfake alterations.'
-        : 'Sampled face frames scored below the visual manipulation threshold.',
+      scoreFormatted: noFacesDetected ? 'Skipped' : `${(visionScore * 100).toFixed(1)}%`,
+      summary: noFacesDetected
+        ? 'No human faces were detected in the sampled video frames. Visual facial deepfake analysis was skipped.'
+        : isVisionFlagged
+          ? 'Facial regions scored above the manipulation threshold. Spatial and frequency residuals indicate potential deepfake alterations.'
+          : 'Sampled face frames scored below the visual manipulation threshold.',
       isFlagged: isVisionFlagged,
       heatmap: raw.heatmap_base64 || null,
-      details: [
+      details: noFacesDetected ? [
+        { label: 'Face Detection Status', value: '0 faces located in sampled keyframes' },
+        { label: 'Evaluation Note', value: 'Non-facial media / slides or screen share' },
+      ] : [
         { label: 'Visual Detector Score', value: `${(visionScore * 100).toFixed(1)}%` },
         { label: 'Evaluation Threshold', value: '50.0%' },
         { label: 'Temporal Variance', value: num(raw.vision_temporal_variance) !== null ? raw.vision_temporal_variance.toFixed(4) : 'N/A' },
+        ...(raw.ai_watermark?.watermark_detected ? [{ label: 'AI Provenance Watermark', value: `Google Gemini (${raw.ai_watermark.corner ? raw.ai_watermark.corner.replace('_', ' ') : 'detected'})` }] : []),
       ],
     };
   }
@@ -317,21 +330,24 @@ export function toViewModel(raw, meta = {}) {
       details: [],
     };
   } else {
-    const isSynthetic = (raw.is_deepfake !== undefined && raw.is_deepfake !== null)
-      ? raw.is_deepfake
-      : (audioScore >= 0.50);
-    const isAudioDegraded = degradedModules.includes('stage3_audio');
+    // Strictly evaluate audio modality based on audio detector score and flagged audio segments.
+    // In video scans, raw.is_deepfake reflects overall media manipulation (face OR voice).
     const totalParts = audioSegments.length || 1;
     const flaggedParts = flaggedAudio.length;
+    const isAudioDegraded = degradedModules.includes('stage3_audio');
+    const isAudioSynthetic = (audioScore !== null && audioScore >= 0.50)
+      || flaggedParts > 0
+      || (raw.scan_type === 'audio' && Boolean(raw.is_deepfake));
+    const isAudioFlagged = Boolean(isAudioSynthetic);
 
     // Plain, everyday English status:
-    // - "AI Voice Detected": classified as synthetic (score >= 0.50)
+    // - "AI Voice Detected": classified as synthetic (score >= 0.50 or flagged windows)
     // - "Could Not Confirm Voice Type": inconclusive / degraded
     // - "Human Voice Detected": classified as genuine
     let audioStatus = 'Human Voice Detected';
     let audioBadgeClass = 'fg-badge--safe';
 
-    if (isSynthetic) {
+    if (isAudioSynthetic) {
       audioStatus = 'AI Voice Detected';
       audioBadgeClass = 'fg-badge--high';
     } else if (isAudioDegraded) {
@@ -341,7 +357,7 @@ export function toViewModel(raw, meta = {}) {
 
     let audioSummary = `All ${totalParts} evaluated audio parts show natural human voice patterns.`;
     if (audioStatus === 'AI Voice Detected') {
-      audioSummary = `${flaggedParts} of ${totalParts} audio parts showed AI-generated voice characteristics (AI Voice Score: ${(audioScore * 100).toFixed(1)}%).`;
+      audioSummary = `${flaggedParts > 0 ? flaggedParts : totalParts} of ${totalParts} audio parts showed AI-generated voice characteristics (AI Voice Score: ${(audioScore * 100).toFixed(1)}%).`;
     } else if (audioStatus === 'Could Not Confirm Voice Type') {
       audioSummary = `Audio evaluation was inconclusive or operated in degraded mode. Voice type could not be confirmed with certainty.`;
     } else if (flaggedParts > 0) {
@@ -531,6 +547,19 @@ export function toViewModel(raw, meta = {}) {
       source: 'Face Manipulation Detector',
       title: `Face regions scored ${(visionScore * 100).toFixed(1)}% manipulation`,
       body: 'Spatial and noise residuals on detected facial regions exceeded the deepfake detection threshold.',
+      quote: null,
+      timestamp: null,
+    });
+  }
+
+  // AI Provenance Watermark (Google Gemini / Veo diamond star)
+  if (raw.ai_watermark && raw.ai_watermark.watermark_detected) {
+    pushEvidence({
+      kind: 'AI Provenance Watermark',
+      tier: 'critical',
+      source: 'Gemini Watermark Detector',
+      title: raw.ai_watermark.provenance || 'Google Gemini / Veo AI Provenance Watermark',
+      body: raw.ai_watermark.details || 'Google Gemini 4-pointed diamond sparkle watermark detected. Conclusive 100% confirmation of synthetic AI generation.',
       quote: null,
       timestamp: null,
     });

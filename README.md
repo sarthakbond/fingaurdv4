@@ -59,33 +59,89 @@ FinGuard is packaged as an **Automated Compliance Gateway**. Stockbrokers (Zerod
 
 ---
 
-## 🏗️ 3. 9-Stage Forensic Pipeline Architecture
+## 🏗️ 3. How It Works, Architectural Flowchart & System Components
 
-FinGuard executes an asynchronous, sequential pipeline with strict VRAM offloading and ephemeral sandboxing:
+FinGuard operates as a local-first, sequential multi-modal pipeline engineered to execute multiple heavy neural networks within a **6GB VRAM hardware budget** (NVIDIA RTX 4050 Laptop GPU) while ensuring strict zero-retention data privacy under the Indian DPDP Act 2023.
+
+---
+
+### 🔄 3.1 End-to-End System Flowchart
+
+The following diagram illustrates the complete data flow and model lifecycle across all 9 stages:
 
 ```mermaid
 flowchart TD
-    A[Raw Upload: Video / Audio / Image / Text / APK / URL] --> Stage1[Stage 1: Ingest & Preprocessing\nAdaptive Sampling + Laplacian Quality Assessment]
-    
-    subgraph MultiModalForensics [Multi-Modal Forensic Layer]
-        Stage1 -->|Face Crops| Stage2[Stage 2: Vision Deepfake Forensics\nSpatial SRM + Phase 2 Classifier + Mouth Motion]
-        Stage1 -->|16kHz Audio| Stage4[Stage 4: Faster-Whisper Transcription\nPhonetic Financial Normalization + Subtitle Clock]
-        Stage4 -->|Transcript| Stage3[Stage 3: Audio Deepfake Forensics\nWav2Vec2 Spoof Classifier + Finfluencer Target Check]
-        Stage1 -->|Keyframes| Stage7[Stage 7: On-Screen Text OCR\nEasyOCR English + Hindi]
+    classDef client fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef ingest fill:#0f172a,stroke:#818cf8,stroke-width:2px,color:#f8fafc;
+    classDef vision fill:#1e1b4b,stroke:#a855f7,stroke-width:2px,color:#f8fafc;
+    classDef audio fill:#172554,stroke:#3b82f6,stroke-width:2px,color:#f8fafc;
+    classDef reasoning fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#f8fafc;
+    classDef decision fill:#701a75,stroke:#ec4899,stroke-width:2px,color:#f8fafc;
+    classDef output fill:#451a03,stroke:#f59e0b,stroke-width:2px,color:#f8fafc;
+
+    subgraph ClientLayer ["1. Ingestion & Client Gateways"]
+        InpVideo["🎬 Video Upload (MP4/MOV)"]:::client
+        InpAudio["🎙️ Voice Audio (WAV/MP3)"]:::client
+        InpText["💬 Financial Text / Tip"]:::client
+        InpURL["🌐 Suspect Broker URL"]:::client
+        InpAPK["📦 Android APK File"]:::client
+        ExtClient["🛡️ Chrome Extension (MV3)"]:::client
+        TunnelClient["☁️ Cloudflare Public Tunnel\n(start_tunnel.bat)"]:::client
     end
-    
-    subgraph RegulatoryReasoning [Compliance & Threat Analysis]
-        Stage4 & Stage7 --> Stage5[Stage 5: SEBI Compliance Reasoning\nDPDP PET Redaction + Ollama LLaMA 3.1 / Heuristic Engine]
-        Stage5 --> Stage6[Stage 6: SEBI Registry Cross-Check\nTTL Cached Master Snapshot - Aug 2026]
-        Stage1 & Stage4 & Stage7 --> Stage9[Stage 9: APK & Phishing Domain Scanner\nManifest Forensics + Levenshtein Domain Audit]
+
+    TunnelClient --> Gateway["⚡ FastAPI Unified API Gateway\n(Port 8000 / SPA Routing)"]:::ingest
+    ExtClient --> Gateway
+    InpVideo & InpAudio & InpText & InpURL & InpAPK --> Gateway
+
+    subgraph PipelineStage1 ["Stage 1: Ephemeral Sandboxing & Ingest"]
+        Gateway --> Sandbox["🔒 Ephemeral Temp Directory (temp/{job_id})\nAuto-Purged via Python finally: block"]:::ingest
+        Sandbox --> S1["Stage 1: Ingest & Preprocessing\n• FFprobe Metadata & Provenance Manifests\n• Scene-Cut Aware Adaptive Sampling\n• Laplacian Blur Variance (Quality Index)"]:::ingest
+        S1 --> WatermarkScan["🔍 Google Gemini / Veo Diamond Watermark Detector\n• 4-Corner Multi-Scale Cross-Correlation\n• Deterministic 100% AI Provenance Marker"]:::ingest
     end
-    
-    subgraph OutputGeneration [Aggregation & Enforcement]
-        Stage2 & Stage3 & Stage5 & Stage6 & Stage9 --> Aggregation[Calibrated Decision Engine\nDomain-Weighted Ensemble Risk Scoring]
-        Aggregation --> Stage8[Stage 8: SEBI SCORES Evidence Dossier\nPre-Filing Draft for Compliance Review]
-        Aggregation --> Frontend[Real-Time Interactive Dashboard & Extension]
+
+    subgraph ParallelForensics ["Multi-Modal Forensic Layer (Sequential VRAM Isolation)"]
+        S1 -->|Face Keyframes| S2["Stage 2: Vision Deepfake Forensics\n• MS-EffGCViT / Dual-Branch SRM Filters\n• Facial Warping & Frequency Grid Residuals\n• Early-Exit Optimization (>0.92 x 4 frames)"]:::vision
+        S1 -->|16kHz Mono WAV| S4["Stage 4: Faster-Whisper Transcription\n• GPU float16 / CPU int8 Fallback\n• Phonetic Normalization (SEBI, INA...)\n• Segment Subtitle Timestamp Clock"]:::audio
+        S4 -->|Transcript + Audio WAV| S3["Stage 3: Audio Deepfake & Acoustic Forensics\n• Wav2Vec2 Spoof Feature Classifier\n• Librosa pyin Pitch Micro-Jitter (F0)\n• 85% Spectral Rolloff & Vocoder Flatness\n• Watermark / Vision Cross-Modal Conditioning"]:::audio
+        S1 -->|Scene Keyframes| S7["Stage 7: On-Screen Text OCR\n• EasyOCR (Hindi + English GPU)\n• Certificates, P&L Screenshots, Tip Banners"]:::vision
+    end
+
+    subgraph RegulatoryReasoning ["Compliance & Fraud Intelligence Layer"]
+        S4 & S7 --> DPDP["🛡️ DPDP Act 2023 PET Privacy Shield\n• Automated Regex Redaction\n• Masks PAN, Aadhaar, Phone (+91), UPI, Accounts"]:::reasoning
+        DPDP --> S5["Stage 5: SEBI Regulatory Compliance Reasoning\n• Ollama LLaMA 3.1 (Q4_K_M) with Pre-Warmed VRAM\n• 6-Factor Regulatory Matrix (Guaranteed Returns...)\n• Indian Scam Slang NLP (rocket calls, jackpot)\n• Adversarial Prompt Injection Boundary Shield\n• Sub-millisecond Regex Heuristic Fallback"]:::reasoning
+        S5 --> S6["Stage 6: SEBI Intermediary Registry Cross-Check\n• RapidFuzz (token_sort_ratio) Fuzzy Match\n• In-Memory TTL Cache (Aug 2026 Snapshot)\n• Verified, Not Found, Mismatch, Malformed"]:::reasoning
+        S1 & InpURL & InpAPK --> S9["Stage 9: APK Manifest & Domain Phishing Auditor\n• Androguard Android Manifest Decompiler\n• Two-Pass Levenshtein Broker Domain Auditor"]:::reasoning
+    end
+
+    subgraph DecisionAndOutput ["Decision Engine & Evidentiary Reporting"]
+        S2 & S3 & WatermarkScan & S5 & S6 & S9 --> Engine["⚖️ Calibrated 3-Tier Decision Engine\n• Domain-Weighted Multi-Signal Fusion\n• Media Authenticity vs. Financial Compliance Decoupling"]:::decision
+        Engine --> Verdict["🎯 Calibrated Verdict Rating:\n• 🔴 Critical: Deepfake + Scam\n• 🟡 Warning: Deepfake / Active Impersonation\n• 🟠 Warning: SEBI Regulatory Violation / Scam\n• 🟢 Safe: Authenticated Content"]:::decision
+        Engine --> S8["Stage 8: SEBI SCORES 2.0 Dossier Generator\n• Pre-Filing Formal Legal Complaint Draft\n• Cites SEBI IA 2013, RA 2014 & PFUTP 2003\n• Exportable Plaintext / scores_complaint"]:::output
+        Engine --> Dashboard["🖥️ Banking-Grade Glassmorphic SPA Dashboard\n• Interactive Risk Timeline Scrubber\n• Independent Modality Cards (Face & Voice)\n• Step-by-Step Evidence Audit Trail Cards"]:::output
     end
 ```
+
+---
+
+### 🧩 3.2 Core System Components Breakdown
+
+FinGuard is partitioned into **13 modular, decoupled components**:
+
+| Component | Key Source Files | Core Responsibility & Architectural Design |
+|:---|:---|:---|
+| **1. Provenance Watermark Detector** | [`src/watermark_detector.py`](file:///e:/fingaurd/src/watermark_detector.py)<br>[`src/assets/gemini_watermark_template.png`](file:///e:/fingaurd/src/assets/gemini_watermark_template.png) | Scans all four corners of uncropped keyframes for the **Google Gemini / Veo 4-point diamond sparkle watermark** using multi-scale edge cross-correlation (`cv2.matchTemplate` + Canny edges), establishing 100% deterministic synthetic origin. |
+| **2. Ingest & Adaptive Sampler** | [`src/stages/stage1_ingest.py`](file:///e:/fingaurd/src/stages/stage1_ingest.py) | Isolates container metadata via FFprobe, extracts 16kHz mono audio, detects scene transitions, crops face bounding boxes using MTCNN, and calculates the Laplacian blur variance ($\nabla^2$) to classify input video quality. |
+| **3. Dual-Stream Vision Detector** | [`src/stages/stage2_vision.py`](file:///e:/fingaurd/src/stages/stage2_vision.py)<br>[`src/model.py`](file:///e:/fingaurd/src/model.py) | Employs `KoreaPeter/ms-eff-gcvit-deepfake-b0-ff-plus-plus` / `AdityaManojShinde/deepfake-detector` to inspect spatial facial warping and high-pass SRM frequency residuals, with viseme lip-motion optical flow analysis and 4-frame early exit. |
+| **4. Acoustic & Neural Vocoder Forensics** | [`src/stages/stage3_audio.py`](file:///e:/fingaurd/src/stages/stage3_audio.py)<br>[`src/stages/audio_backends/acoustic_forensics.py`](file:///e:/fingaurd/src/stages/audio_backends/acoustic_forensics.py) | Combines `garystafford/wav2vec2-deepfake-voice-detector` with acoustic forensics: measures pitch micro-jitter ($F_0$ via `librosa.pyin`), 85% vocoder bandwidth rolloff (detects 3153 Hz compression in Gemini Omni Flash), and cross-modal watermark conditioning. |
+| **5. Multilingual Speech Transcriber** | [`src/stages/stage4_transcription.py`](file:///e:/fingaurd/src/stages/stage4_transcription.py) | Runs `faster-whisper` (`medium` float16 on GPU, int8 on CPU) with phonetic financial normalization (converting spoken *"say bee"* $\rightarrow$ `SEBI`, spoken digits to numbers) and generates subtitle segment clocks. |
+| **6. DPDP Privacy Shield** | [`src/stages/stage5_llm.py`](file:///e:/fingaurd/src/stages/stage5_llm.py) | Redacts Indian PII (Aadhaar, PAN cards, phone numbers `+91`, UPI IDs `@okhdfcbank`, bank accounts, and Telegram invite links) before passing data to the LLM, adhering to the Digital Personal Data Protection Act, 2023. |
+| **7. SEBI Regulatory Compliance LLM** | [`src/stages/stage5_llm.py`](file:///e:/fingaurd/src/stages/stage5_llm.py) | Evaluates spoken transcripts and OCR text using local Ollama (`llama3.1:latest`) against 6 SEBI risk factors (guaranteed returns, urgency tactics, VIP groups, credential claims) with Indian scam slang NLP (*"rocket calls"*, *"pakka jackpot"*) and anti-prompt-injection boundary shields. |
+| **8. Heuristic Fallback Engine** | [`src/stages/stage5_llm.py`](file:///e:/fingaurd/src/stages/stage5_llm.py) | Sub-millisecond deterministic regex engine that instantly scores content if Ollama times out (>3.5s) or encounters memory pressure, guaranteeing zero downtime. |
+| **9. SEBI Intermediary Registry** | [`src/stages/stage6_registry.py`](file:///e:/fingaurd/src/stages/stage6_registry.py)<br>`static_data/sebi_registry.json` | RapidFuzz `token_sort_ratio` fuzzy matcher with in-memory TTL caching that validates claimed advisor registration numbers (`INA...`) against the official SEBI intermediary database offline in under 2ms. |
+| **10. Video & Image OCR Engine** | [`src/stages/stage7_ocr.py`](file:///e:/fingaurd/src/stages/stage7_ocr.py) | EasyOCR (Hindi + English) extracting text from trading P&L screenshots, fake SEBI registration certificates, and on-screen chat banners. |
+| **11. SEBI SCORES Dossier Generator** | [`src/stages/stage8_report.py`](file:///e:/fingaurd/src/stages/stage8_report.py) | Formats multi-modal forensic findings into an official regulatory pre-filing legal dossier citing specific clauses of SEBI IA 2013, RA 2014, and PFUTP 2003 regulations. |
+| **12. Rogue APK & Phishing Scanner** | [`src/stages/stage9_apk_domain.py`](file:///e:/fingaurd/src/stages/stage9_apk_domain.py) | Decompiles Android `.apk` manifests via Androguard to catch trojan permissions (`READ_SMS` + `BIND_ACCESSIBILITY_SERVICE`) and runs two-pass Levenshtein distance auditing to detect typosquatted broker phishing domains. |
+| **13. Cloudflare Tunnel & Web Gateway** | [`app.py`](file:///e:/fingaurd/app.py)<br>[`start_tunnel.bat`](file:///e:/fingaurd/start_tunnel.bat)<br>[`static/js/main.js`](file:///e:/fingaurd/static/js/main.js) | FastAPI ASGI web server serving both SPA client routes and async REST endpoints, coupled with Cloudflare Tunneling (`cloudflared`) to expose the system globally over secure HTTPS with one click. |
 
 ### Detailed Stage-by-Stage Breakdown
 

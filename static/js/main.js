@@ -474,7 +474,7 @@ function handleAnalysisSuccess(result) {
   } catch (err) {
     console.error('Error assembling view model:', err);
     showRoute('/analyze');
-    showWorkspaceError('An error occurred while formatting the analysis results.');
+    showWorkspaceError('An error occurred while formatting the analysis results: ' + (err?.message || err));
   }
 }
 

@@ -208,6 +208,24 @@ def run_stage1_ingest(video_path: str, temp_dir: str, job_id: str):
         }
         print(f"[{job_id}] Extracted {extracted_count} face frames (Scene-aware across {duration_sec:.1f}s video, Quality: {rating} [{width}x{height}, Sharpness: {avg_sharpness:.1f}]).")
         
+        # 3. AI Provenance Watermark Detection (Google Gemini 4-Point Diamond Sparkle)
+        try:
+            from src.watermark_detector import scan_keyframe_watermarks
+            kf_paths = [kf["path"] for kf in result.get("keyframes", [])]
+            watermark_res = scan_keyframe_watermarks(kf_paths)
+            result["ai_watermark"] = watermark_res
+            if watermark_res.get("watermark_detected"):
+                print(f"[{job_id}] [AI WATERMARK] Detected Google Gemini provenance watermark in {watermark_res.get('corner')} (confidence: {watermark_res.get('peak_confidence'):.4f})")
+                if "metadata_forensics" in result:
+                    result["metadata_forensics"]["gemini_watermark"] = watermark_res
+                    result["metadata_forensics"]["provenance_status"] = "confirmed_ai_generated"
+                    result["metadata_forensics"]["metadata_confidence"] = 1.0
+                    obs = result["metadata_forensics"].setdefault("forensic_observations", [])
+                    obs.insert(0, watermark_res["details"])
+        except Exception as wm_exc:
+            print(f"[{job_id}] Watermark scan non-fatal error: {wm_exc}")
+            result["ai_watermark"] = {"watermark_detected": False}
+        
     except Exception as e:
         print(f"[{job_id}] Face extraction failed: {e}")
     finally:
