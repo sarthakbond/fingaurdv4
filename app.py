@@ -29,10 +29,25 @@ from src.stages.stage7_ocr import run_stage7_ocr, run_video_keyframes_ocr
 from src.stages.stage8_report import generate_sebi_scores_complaint
 from src.stages.stage9_apk_domain import run_stage9_apk_domain, scan_domain
 
+from contextlib import asynccontextmanager
+
 _server_cfg = settings.get("server", {})
 MAX_UPLOAD_SIZE = _server_cfg.get("max_upload_mb", 100) * 1024 * 1024
 
-app = FastAPI(title="FinGuard — Financial Deepfake & Scam Detector", version="3.1")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Warms up local Ollama instance in background so inference doesn't cold load."""
+    import threading
+    def _warmup():
+        cfg = get_stage_config("stage5_llm")
+        api_url = cfg.get("api_url", "http://localhost:11434/api/chat")
+        model_id = cfg.get("model_id", "llama3.1:latest")
+        print(f"[FinGuard Startup] Pre-warming Ollama LLM ({model_id})...")
+        warm_up_ollama(api_url, model_id)
+    threading.Thread(target=_warmup, daemon=True).start()
+    yield
+
+app = FastAPI(title="FinGuard — Financial Deepfake & Scam Detector", version="4.0", lifespan=lifespan)
 
 # Configure CORS safely
 app.add_middleware(
@@ -51,18 +66,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # In-memory job store
 jobs: dict = {}
-
-@app.on_event("startup")
-async def on_startup():
-    """Warms up local Ollama instance in background so inference doesn't cold load."""
-    import threading
-    def _warmup():
-        cfg = get_stage_config("stage5_llm")
-        api_url = cfg.get("api_url", "http://localhost:11434/api/chat")
-        model_id = cfg.get("model_id", "llama3.1:latest")
-        print(f"[FinGuard Startup] Pre-warming Ollama LLM ({model_id})...")
-        warm_up_ollama(api_url, model_id)
-    threading.Thread(target=_warmup, daemon=True).start()
 
 def validate_file_size(file: UploadFile):
     """Guards against oversized uploads causing memory/disk exhaustion."""
