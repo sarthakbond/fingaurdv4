@@ -27,9 +27,37 @@ def load_config():
 # Global config object
 settings = load_config()
 
+def reload_config():
+    """Reloads settings directly from config.yaml."""
+    global settings
+    settings = load_config()
+    return settings
+
 # Helper accessors
 def get_device():
-    return "cpu" if settings.get("hardware", {}).get("force_cpu", False) else settings.get("hardware", {}).get("device", "cuda")
+    if settings.get("hardware", {}).get("force_cpu", False):
+        return "cpu"
+    dev = settings.get("hardware", {}).get("device", "cuda")
+    if dev == "cuda":
+        try:
+            import torch
+            if not torch.cuda.is_available():
+                return "cpu"
+        except Exception:
+            return "cpu"
+    return dev
+
+def get_vision_detector_config() -> dict:
+    return settings.get("vision_detector", {})
+
+def get_audio_detector_config() -> dict:
+    return settings.get("audio_detector", {})
+
+def get_vision_threshold() -> float:
+    det_cfg = get_vision_detector_config()
+    if "threshold" in det_cfg and det_cfg["threshold"] is not None:
+        return float(det_cfg["threshold"])
+    return get_threshold("vision_fake_threshold", 0.5)
 
 def get_threshold(key: str, default: float = 0.5) -> float:
     return settings.get("thresholds", {}).get(key, default)
@@ -48,3 +76,13 @@ def get_server_config() -> dict:
 
 def is_cloud_fallback_enabled() -> bool:
     return settings.get("backup_apis", {}).get("enable_cloud_fallback", False)
+
+def get_metadata_config() -> dict:
+    return settings.get("metadata", {
+        "enabled": True,
+        "use_ffprobe": True,
+        "use_exiftool": True,
+        "timeout_seconds": 10,
+        "detect_provenance": True
+    })
+

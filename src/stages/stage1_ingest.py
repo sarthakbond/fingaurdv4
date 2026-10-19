@@ -7,34 +7,65 @@ from moviepy import VideoFileClip
 from facenet_pytorch import MTCNN
 from PIL import Image
 
-from src.config import get_device, get_stage_config, get_threshold
+from src.config import get_device, get_stage_config, get_threshold, get_metadata_config
+from src.metadata_forensics import extract_metadata_forensics
 
 def run_stage1_ingest(video_path: str, temp_dir: str, job_id: str):
     """
-    Extracts audio and uses adaptive scene-aware face sampling to catch micro-splices.
+    Extracts audio, uses adaptive scene-aware face sampling to catch micro-splices,
+    assesses video quality, and extracts video metadata & media provenance.
     Returns:
         dict: {
             "audio_path": str or None,
-            "face_frames_paths": list[str]
+            "face_frames_paths": list[str],
+            "quality_assessment": dict,
+            "metadata_forensics": dict
         }
     """
-    print(f"[{job_id}] Running Stage 1: Ingest & Preprocess (Adaptive Sampling)")
+    print(f"[{job_id}] Running Stage 1: Ingest & Preprocess (Adaptive Sampling + Metadata Forensics)")
     stage_config = get_stage_config("stage1_ingest")
+    metadata_config = get_metadata_config()
     device = get_device()
     
     result = {
         "audio_path": None,
         "face_frames_paths": [],
+        "keyframes": [],
         "quality_assessment": {
             "rating": "Unknown",
             "sharpness_score": 0.0,
             "resolution": "Unknown",
             "duration_sec": 0.0,
             "compression_flag": False
+        },
+        "metadata_forensics": {
+            "status": "unavailable",
+            "completeness": "low",
+            "provenance_status": "not_available",
+            "forensic_observations": ["Metadata extraction pending"],
+            "metadata_confidence": 0.0
         }
     }
     
     os.makedirs(temp_dir, exist_ok=True)
+
+    # 0. Extract Video Metadata & Media Provenance (Non-blocking)
+    try:
+        print(f"[{job_id}] Extracting video container metadata & provenance credentials...")
+        meta_res = extract_metadata_forensics(video_path, job_id=job_id, config=metadata_config)
+        result["metadata_forensics"] = meta_res
+        print(f"[{job_id}] Metadata forensics completed (Status: {meta_res.get('status')}, Completeness: {meta_res.get('completeness')}, Provenance: {meta_res.get('provenance_status')}).")
+    except Exception as e:
+        print(f"[{job_id}] Metadata extraction encountered non-fatal error: {e}")
+        result["metadata_forensics"] = {
+            "status": "unavailable",
+            "reason": f"Metadata extraction failed: {str(e)}",
+            "completeness": "low",
+            "provenance_status": "not_available",
+            "forensic_observations": ["Metadata extraction could not be completed"],
+            "metadata_confidence": 0.0
+        }
+
     
     # 1. Extract Audio
     try:
@@ -86,7 +117,10 @@ def run_stage1_ingest(video_path: str, temp_dir: str, job_id: str):
         frame_count = 0
         extracted_count = 0
         prev_gray = None
+        prev_kf_gray = None
         sharpness_list = []
+        max_ocr_keyframes = stage_config.get("max_ocr_keyframes", 5)
+        kf_interval = max(1, total_frames // max_ocr_keyframes)
         
         while cap.isOpened() and extracted_count < target_frames:
             ret, frame = cap.read()
@@ -130,6 +164,24 @@ def run_stage1_ingest(video_path: str, temp_dir: str, job_id: str):
                         face_img.save(out_path)
                         result["face_frames_paths"].append(out_path)
                         extracted_count += 1
+
+                # Keyframe extraction for OCR: full video frame with timestamp tracking
+                if (frame_count % kf_interval == 0 or is_scene_cut) and len(result["keyframes"]) < max_ocr_keyframes:
+                    should_save_kf = True
+                    if prev_kf_gray is not None:
+                        kf_diff = float(np.mean(cv2.absdiff(gray, prev_kf_gray)))
+                        if kf_diff < 8.0:  # Near-identical to previous keyframe, skip duplicate
+                            should_save_kf = False
+                    if should_save_kf:
+                        kf_path = os.path.join(temp_dir, f"{job_id}_keyframe_{len(result['keyframes'])}.jpg")
+                        cv2.imwrite(kf_path, frame)
+                        timestamp_sec = round(frame_count / fps, 2)
+                        result["keyframes"].append({
+                            "path": kf_path,
+                            "timestamp_sec": timestamp_sec,
+                            "frame_index": frame_count
+                        })
+                        prev_kf_gray = gray
             
             frame_count += 1
             
