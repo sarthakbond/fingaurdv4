@@ -139,29 +139,25 @@ async function handleMessage(msg) {
     }
 
     // ── GUARD 4: STRICT SELF-CHAT ONLY VERIFICATION ──────────────────────
+    // Discard any group chat
+    if ((msg.from && msg.from.endsWith('@g.us')) || (msg.to && msg.to.endsWith('@g.us'))) {
+        return;
+    }
+
+    const myUser = client.info && client.info.wid ? client.info.wid.user : '';
+    const myWid = client.info && client.info.wid ? client.info.wid._serialized : '';
+
+    // Must be strictly sent to and from your own account (Message yourself)
+    const isToMe = (msg.to === myWid) || (msg.to && msg.to.includes(myUser));
+    const isFromMe = (msg.from === myWid) || (msg.from && msg.from.includes(myUser)) || msg.fromMe;
+
+    if (!isToMe || !isFromMe) {
+        return;
+    }
+
+    console.log(`\n[Private Note-to-Self Received] Body: "${bodyText.slice(0, 50)}" | Media: ${msg.hasMedia}`);
+
     try {
-        const chat = await msg.getChat();
-
-        // Must NOT be a group chat
-        if (chat.isGroup) {
-            return;
-        }
-
-        const myUser = client.info && client.info.wid ? client.info.wid.user : '';
-        const myWid = client.info && client.info.wid ? client.info.wid._serialized : '';
-
-        // The chat ID must match YOUR OWN phone number
-        const isSelfChat = (chat.id && chat.id.user === myUser) ||
-                           (chat.id && chat.id._serialized === myWid) ||
-                           (msg.to === myWid && msg.fromMe);
-
-        if (!isSelfChat) {
-            // Drop immediately: message belongs to an external contact
-            return;
-        }
-
-        console.log(`\n[Private Note-to-Self Received] Body: "${bodyText.slice(0, 50)}" | Media: ${msg.hasMedia}`);
-
         let payload = {
             sender: myWid,
             body: bodyText
@@ -184,11 +180,12 @@ async function handleMessage(msg) {
         });
 
         if (response.data && response.data.reply && response.data.reply.trim()) {
-            await msg.reply(response.data.reply);
+            console.log(`📤 Dispatching reply to ${myWid}...`);
+            await client.sendMessage(myWid, response.data.reply);
             console.log('✅ Forensic verdict sent to your "Message yourself" chat!');
         }
     } catch (err) {
-        console.error('⚠️ Bridge error:', err.message);
+        console.error('⚠️ Bridge error:', err.message || err);
     }
 }
 
