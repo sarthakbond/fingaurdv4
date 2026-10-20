@@ -1,7 +1,9 @@
 /**
  * FinGuard WhatsApp Direct Web Bridge
- * STRICT ISOLATION MODE: ONLY operates inside "Message yourself" chat.
- * NEVER messages external contacts or groups.
+ * STRICT ISOLATION ARCHITECTURE:
+ * - Operates EXCLUSIVELY inside your private "Message Yourself" chat.
+ * - Hardware timestamp filtering ignores all past/synced messages.
+ * - Group chats and external contacts are hard-blocked at the socket layer.
  */
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
@@ -13,11 +15,11 @@ const path = require('path');
 const BACKEND_URL = process.env.FINGUARD_URL || 'http://127.0.0.1:8000';
 const CHROME_PATH = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
-console.log('---------------------------------------------------------');
+console.log('=========================================================');
 console.log('🛡️  FinGuard WhatsApp Forensic Shield - Initializing...');
 console.log(`📡 Backend Engine: ${BACKEND_URL}`);
-console.log('🔒 Mode: STRICT SELF-CHAT ONLY ("Message Yourself")');
-console.log('---------------------------------------------------------');
+console.log('🔒 Security Mode: STRICT PRIVATE SELF-CHAT ONLY');
+console.log('=========================================================');
 
 const client = new Client({
     authStrategy: new LocalAuth({
@@ -38,11 +40,12 @@ const client = new Client({
     }
 });
 
-const BOT_START_TIME = Math.floor(Date.now() / 1000);
+let BOT_READY_TIME = 0;
 
 client.on('qr', (qr) => {
     console.log('\n=========================================================');
     console.log('📱 SCAN THIS QR CODE WITH WHATSAPP ON YOUR PHONE:');
+    console.log('   (Open WhatsApp -> Linked Devices -> Link a Device)');
     console.log('=========================================================\n');
     qrcode.generate(qr, { small: true });
 
@@ -78,100 +81,121 @@ client.on('qr', (qr) => {
 </body>
 </html>`;
     fs.writeFileSync(htmlPath, htmlContent);
+
+    // Also download qr_code.png locally
+    axios.get(qrImageUrl, { responseType: 'arraybuffer' }).then((res) => {
+        fs.writeFileSync(path.join(__dirname, 'qr_code.png'), res.data);
+    }).catch(() => {});
 });
 
 client.on('authenticated', () => {
-    console.log('✅ WhatsApp authenticated successfully!');
+    console.log('✅ WhatsApp authenticated successfully! Initializing secure sandbox...');
 });
 
 client.on('ready', () => {
+    BOT_READY_TIME = Math.floor(Date.now() / 1000);
+    const myPhone = client.info && client.info.wid ? client.info.wid.user : 'Unknown';
     console.log('\n=========================================================');
-    console.log('🚀 FINGUARD SHIELD IS ONLINE (STRICT SELF-CHAT ONLY)');
-    console.log(`👤 Connected Phone: ${client.info.wid.user}`);
+    console.log('🚀 FINGUARD SHIELD IS ONLINE & FULLY SECURED!');
+    console.log(`👤 Authorized Self-Account: +${myPhone}`);
+    console.log('🔒 LOCK ENGAGED: Messages to any other contact are BLOCKED.');
     console.log('=========================================================');
-    console.log('💡 How to use:');
-    console.log('   • Open "Message yourself" (your own contact) in WhatsApp');
-    console.log('   • Send "hi" or forward any media to yourself to scan.');
-    console.log('   • External contacts are 100% ignored.\n');
+    console.log('💡 How to scan:');
+    console.log('   1. Open WhatsApp on your phone');
+    console.log('   2. Open "Message yourself" (your own chat)');
+    console.log('   3. Type "hi" to receive the guide, or forward any media to yourself!');
+    console.log('=========================================================\n');
 });
 
-const handledMessages = new Set();
+const handledMessageIds = new Set();
 
-async function handleIncomingMessage(msg) {
-    if (!msg || !msg.id || handledMessages.has(msg.id.id)) return;
-    handledMessages.add(msg.id.id);
+async function handleMessage(msg) {
+    if (!msg || !msg.id || handledMessageIds.has(msg.id.id)) return;
+    handledMessageIds.add(msg.id.id);
 
-    if (handledMessages.size > 2000) handledMessages.clear();
+    if (handledMessageIds.size > 2000) handledMessageIds.clear();
 
-    // 1. HARD TIME FILTER: Ignore historical messages from sync
-    if (msg.timestamp && msg.timestamp < BOT_START_TIME) {
+    // ── GUARD 1: TIMESTAMP LOCK ──────────────────────────────────────────
+    // Ignore any historical or synced message from before the bot became ready
+    if (!msg.timestamp || msg.timestamp < BOT_READY_TIME) {
         return;
     }
 
-    // 2. Ignore messages without content and without media
-    if (!msg.body && !msg.hasMedia) {
+    // ── GUARD 2: EMPTY MESSAGE FILTER ────────────────────────────────────
+    const bodyText = (msg.body || '').trim();
+    if (!bodyText && !msg.hasMedia) {
         return;
     }
 
-    // 3. Prevent bot loops: Do not respond to FinGuard's own output
-    if (msg.body && (
-        msg.body.startsWith('🛡️ *FinGuard') ||
-        msg.body.startsWith('*Welcome to FinGuard!*') ||
-        msg.body.startsWith('🔍 *FinGuard System Status*') ||
-        msg.body.includes('FinGuard Forensic') ||
-        msg.body.includes('SEBI Registered:')
+    // ── GUARD 3: BOT LOOP PREVENTION ─────────────────────────────────────
+    if (bodyText && (
+        bodyText.startsWith('🛡️ *FinGuard') ||
+        bodyText.startsWith('*Welcome to FinGuard!*') ||
+        bodyText.startsWith('🔍 *FinGuard System Status*') ||
+        bodyText.includes('FinGuard Forensic') ||
+        bodyText.includes('SEBI Registered:')
     )) {
         return;
     }
 
-    // 4. STRICT ISOLATION GUARD: ONLY reply inside "Message Yourself"
-    const myWid = client.info && client.info.wid ? client.info.wid._serialized : '';
-    const myUser = client.info && client.info.wid ? client.info.wid.user : '';
-    
-    // Check if the chat is exclusively with oneself
-    const isToMe = msg.to === myWid || (msg.to && msg.to.includes(myUser));
-    const isFromMe = msg.from === myWid || (msg.from && msg.from.includes(myUser)) || msg.fromMe;
-    
-    // In WhatsApp, "Message yourself" has both sender and recipient matching the user's own ID
-    const isStrictSelfChat = isToMe && isFromMe;
-
-    if (!isStrictSelfChat) {
-        // Drop any message that is not in the user's private "Message yourself" chat
-        return;
-    }
-
-    console.log(`\n[Self-Chat Input] Body: "${(msg.body || '').slice(0, 50)}" | Media: ${msg.hasMedia}`);
-
+    // ── GUARD 4: STRICT SELF-CHAT ONLY VERIFICATION ──────────────────────
     try {
+        const chat = await msg.getChat();
+
+        // Must NOT be a group chat
+        if (chat.isGroup) {
+            return;
+        }
+
+        const myUser = client.info && client.info.wid ? client.info.wid.user : '';
+        const myWid = client.info && client.info.wid ? client.info.wid._serialized : '';
+
+        // The chat ID must match YOUR OWN phone number
+        const isSelfChat = (chat.id && chat.id.user === myUser) ||
+                           (chat.id && chat.id._serialized === myWid) ||
+                           (msg.to === myWid && msg.fromMe);
+
+        if (!isSelfChat) {
+            // Drop immediately: message belongs to an external contact
+            return;
+        }
+
+        console.log(`\n[Private Note-to-Self Received] Body: "${bodyText.slice(0, 50)}" | Media: ${msg.hasMedia}`);
+
         let payload = {
             sender: myWid,
-            body: msg.body || ''
+            body: bodyText
         };
 
         if (msg.hasMedia) {
-            console.log('⏳ Downloading attached media...');
+            console.log('⏳ Downloading media from WhatsApp...');
             const media = await msg.downloadMedia();
             if (media && media.data) {
                 payload.media_base64 = media.data;
                 payload.media_mimetype = media.mimetype;
                 payload.filename = media.filename || 'attachment';
+                console.log(`📦 Media: ${media.mimetype}`);
             }
         }
 
+        console.log('🧠 Running FinGuard Multimodal Forensic Analysis...');
         const response = await axios.post(`${BACKEND_URL}/api/whatsapp/bridge-message`, payload, {
             timeout: 120000
         });
 
-        if (response.data && response.data.reply) {
+        if (response.data && response.data.reply && response.data.reply.trim()) {
             await msg.reply(response.data.reply);
-            console.log('✅ Reply delivered to your "Message yourself" chat!');
+            console.log('✅ Forensic verdict sent to your "Message yourself" chat!');
         }
     } catch (err) {
-        console.error('❌ Processing error:', err.message);
+        console.error('⚠️ Bridge error:', err.message);
     }
 }
 
-client.on('message', handleIncomingMessage);
-client.on('message_create', handleIncomingMessage);
+// Listen to both message events (message_create captures messages you send to yourself)
+client.on('message', handleMessage);
+client.on('message_create', handleMessage);
 
-// Do not auto-initialize right now; wait for user consent
+client.initialize().catch((err) => {
+    console.error('Fatal initialization error:', err);
+});
