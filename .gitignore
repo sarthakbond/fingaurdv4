@@ -18,3 +18,10 @@ __pycache__/
 # Local evaluation dumps
 tests/*.csv
 *.csv.bak
+
+# Node & WhatsApp Web Bridge
+whatsapp_bridge/node_modules/
+whatsapp_bridge/.wwebjs_auth/
+whatsapp_bridge/.wwebjs_cache/
+whatsapp_bridge/scan_qr.html
+

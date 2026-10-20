@@ -90,6 +90,30 @@ def test_whatsapp_webhook_phishing_url_analysis():
         data={"From": "whatsapp:+919876543210", "Body": url_msg, "NumMedia": "0"}
     )
     assert response.status_code == 200
-    text = response.text
-    assert "FinGuard Forensic Alert" in text
+    assert text.find("FinGuard Forensic Alert") != -1
     assert ("Domain Safety" in text or "Phishing" in text or "Risk" in text)
+
+
+def test_whatsapp_bridge_message_greeting():
+    """Verify that the direct bridge endpoint returns JSON welcome guide on 'hi'."""
+    response = client.post(
+        "/api/whatsapp/bridge-message",
+        json={"sender": "whatsapp:+919876543210", "body": "hi"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("type") == "welcome"
+    assert "Welcome to FinGuard!" in data.get("reply", "")
+
+
+def test_whatsapp_bridge_message_status():
+    """Verify that the direct bridge endpoint returns JSON system status."""
+    response = client.post(
+        "/api/whatsapp/bridge-message",
+        json={"sender": "whatsapp:+919876543210", "body": "status"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("type") == "status"
+    assert "FinGuard System Status" in data.get("reply", "")
+

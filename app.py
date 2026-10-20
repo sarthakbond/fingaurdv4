@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-import shutil, os, uuid, re, json, datetime
+import shutil, os, uuid, re, json, datetime, base64
 import numpy as np
 
 from src.config import settings, get_threshold, get_vision_threshold, get_stage_config
@@ -1327,6 +1327,101 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
         return twiml_xml_response(build_twiml_response(err_msg))
     finally:
         if not is_video and os.path.exists(temp_job_dir):
+            shutil.rmtree(temp_job_dir, ignore_errors=True)
+
+
+# ── WhatsApp Web Direct Bridge API ───────────────────────────────────────────
+class WhatsAppBridgeMessage(BaseModel):
+    sender: Optional[str] = "whatsapp:direct"
+    body: Optional[str] = ""
+    media_base64: Optional[str] = None
+    media_mimetype: Optional[str] = None
+    filename: Optional[str] = None
+
+@app.post("/api/whatsapp/bridge-message")
+async def whatsapp_bridge_message(payload: WhatsAppBridgeMessage, request: Request):
+    """
+    Direct bridge endpoint for WhatsApp Web client (whatsapp-web.js).
+    Receives JSON messages directly from the user's phone, analyzes them,
+    and returns a formatted verdict card in JSON for instant reply.
+    """
+    body = (payload.body or "").strip()
+    sender = payload.sender or "whatsapp:direct"
+    media_base64 = payload.media_base64
+    media_mimetype = (payload.media_mimetype or "").lower()
+    filename = payload.filename or ""
+
+    # Determine public URL
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    proto = request.headers.get("x-forwarded-proto") or "https"
+    public_url = os.getenv("CLOUDFLARE_URL") or os.getenv("PUBLIC_URL") or (f"{proto}://{host}" if host else None)
+
+    # 1. Text only (no media)
+    if not media_base64:
+        body_clean = body.strip().lower()
+        body_words = re.sub(r'[^\w\s]', '', body_clean).split()
+        is_greeting = any(w in ["hi", "hello", "hey", "help", "start", "menu", "guide", "info", "namaste"] for w in body_words) and len(body_words) <= 3
+        is_status = any(w in ["status", "health", "ping"] for w in body_words) and len(body_words) <= 2
+
+        if is_greeting or not body_clean:
+            return {"reply": get_welcome_guide(), "type": "welcome"}
+        elif is_status:
+            return {"reply": get_status_guide(), "type": "status"}
+        else:
+            job_id = f"wa-bridge-txt-{uuid.uuid4().hex[:8]}"
+            alert = analyze_whatsapp_text(
+                text=body,
+                job_id=job_id,
+                calculate_verdict_fn=calculate_calibrated_verdict,
+                build_evidence_fn=build_evidence_breakdown,
+                public_url=public_url
+            )
+            return {"reply": alert, "type": "verdict", "job_id": job_id}
+
+    # 2. Media attachment (Image, Audio, Video, APK)
+    job_id = f"wa-bridge-media-{uuid.uuid4().hex[:8]}"
+    temp_job_dir = os.path.join("temp", job_id)
+    os.makedirs(temp_job_dir, exist_ok=True)
+
+    is_video = "video" in media_mimetype or filename.lower().endswith((".mp4", ".mov", ".avi", ".mkv"))
+    is_audio = "audio" in media_mimetype or "ogg" in media_mimetype or filename.lower().endswith((".ogg", ".mp3", ".wav", ".m4a"))
+    is_image = "image" in media_mimetype or filename.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+    is_apk = "android" in media_mimetype or "package-archive" in media_mimetype or filename.lower().endswith(".apk") or body.lower().endswith(".apk")
+
+    ext = ".bin"
+    if is_video:
+        ext = ".mp4"
+    elif is_audio:
+        ext = ".ogg" if "ogg" in media_mimetype else ".mp3"
+    elif is_image:
+        ext = ".jpg" if ("jpeg" in media_mimetype or "jpg" in media_mimetype) else ".png"
+    elif is_apk:
+        ext = ".apk"
+
+    temp_file_path = os.path.join(temp_job_dir, f"media{ext}")
+
+    try:
+        raw_bytes = base64.b64decode(media_base64)
+        with open(temp_file_path, "wb") as f:
+            f.write(raw_bytes)
+
+        if is_apk:
+            alert = analyze_whatsapp_apk(temp_file_path, job_id, filename=filename or "uploaded.apk", public_url=public_url)
+        elif is_image:
+            alert = analyze_whatsapp_image(temp_file_path, job_id, calculate_calibrated_verdict, build_evidence_breakdown, public_url)
+        elif is_audio:
+            alert = analyze_whatsapp_audio(temp_file_path, job_id, calculate_calibrated_verdict, build_evidence_breakdown, public_url)
+        elif is_video:
+            alert = analyze_whatsapp_video(temp_file_path, temp_job_dir, job_id, calculate_calibrated_verdict, build_evidence_breakdown, public_url)
+        else:
+            alert = "⚠️ *FinGuard Notice:* Unsupported file type received. Please send text, voice notes, videos, screenshots, or APKs."
+
+        return {"reply": alert, "type": "verdict", "job_id": job_id}
+    except Exception as e:
+        print(f"[WhatsApp Bridge] Error scanning media: {e}")
+        return {"reply": f"⚠️ *FinGuard Forensic Error:* {str(e)}", "type": "error"}
+    finally:
+        if os.path.exists(temp_job_dir):
             shutil.rmtree(temp_job_dir, ignore_errors=True)
 
 
