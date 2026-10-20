@@ -1363,7 +1363,10 @@ async def whatsapp_bridge_message(payload: WhatsAppBridgeMessage, request: Reque
         is_greeting = any(w in ["hi", "hello", "hey", "help", "start", "menu", "guide", "info", "namaste"] for w in body_words) and len(body_words) <= 3
         is_status = any(w in ["status", "health", "ping"] for w in body_words) and len(body_words) <= 2
 
-        if is_greeting or not body_clean:
+        if not body_clean:
+            return {"reply": "", "type": "empty", "message": "Ignored empty message"}
+
+        if is_greeting:
             return {"reply": get_welcome_guide(), "type": "welcome"}
         elif is_status:
             return {"reply": get_status_guide(), "type": "status"}
