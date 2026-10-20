@@ -241,18 +241,18 @@ def format_whatsapp_verdict_card(
     return "\n".join(lines)
 
 def get_welcome_guide() -> str:
-    """Returns the welcoming onboarding message."""
+    """Returns the welcoming onboarding message in clean ASCII for Twilio compatibility."""
     return (
-        "👋 *Welcome to FinGuard!* 🛡️\n"
-        "_India's Multimodal Financial Deepfake & Scam Shield_\n\n"
+        "*Welcome to FinGuard!*\n"
+        "_India's Multimodal Financial Deepfake and Scam Shield_\n\n"
         "Forward any suspicious message, audio, video, or link to this chat to analyze it:\n\n"
-        "💬 *Text Forward* — Scans stock tips, Hinglish scam slang & SEBI registration claims.\n"
-        "🎙️ *Voice Note / Audio* — Checks for AI voice cloning (ElevenLabs, TTS) & speech intent.\n"
-        "📹 *Video* — Detects face deepfakes, AI watermarks, sensor noise & on-screen text.\n"
-        "🖼️ *Screenshot / Flyer* — OCR scans trading posters & VIP channel invites.\n"
-        "🔗 *Link / Website* — Detects typo-squatted fake broker phishing sites.\n"
-        "📦 *APK File* — Detects trojanized fake trading applications.\n\n"
-        "⚡ _Powered by local GPU deepfake models & the official SEBI Registry._"
+        "- *Text Forward* - Scans stock tips, Hinglish scam slang and SEBI registration claims.\n"
+        "- *Voice Note / Audio* - Checks for AI voice cloning (ElevenLabs, TTS) and speech intent.\n"
+        "- *Video* - Detects face deepfakes, AI watermarks, sensor noise and on-screen text.\n"
+        "- *Screenshot / Flyer* - OCR scans trading posters and VIP channel invites.\n"
+        "- *Link / Website* - Detects typo-squatted fake broker phishing sites.\n"
+        "- *APK File* - Detects trojanized fake trading applications.\n\n"
+        "Powered by local GPU deepfake models and the official SEBI Registry."
     )
 
 def get_status_guide() -> str:
