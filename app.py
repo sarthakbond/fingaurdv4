@@ -9,7 +9,7 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request, Query
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request, Query, Form
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,6 +29,19 @@ from src.stages.stage7_ocr import run_stage7_ocr, run_video_keyframes_ocr
 from src.stages.stage8_report import generate_sebi_scores_complaint
 from src.stages.stage9_apk_domain import run_stage9_apk_domain, scan_domain
 from src.pdf_generator import generate_complaint_pdf
+from src.whatsapp_handler import (
+    build_twiml_response,
+    send_twilio_message,
+    download_twilio_media,
+    format_whatsapp_verdict_card,
+    get_welcome_guide,
+    get_status_guide,
+    analyze_whatsapp_text,
+    analyze_whatsapp_audio,
+    analyze_whatsapp_image,
+    analyze_whatsapp_apk,
+    analyze_whatsapp_video
+)
 
 from contextlib import asynccontextmanager
 
@@ -1154,6 +1167,155 @@ async def trigger_registry_sync(background_tasks: BackgroundTasks):
     background_tasks.add_task(_run_sync)
     return {"status": "sync_queued", "message": "SEBI registry live sync started in background"}
 
+
+
+# ── WhatsApp Webhook (Twilio / Cloudflare Tunnel) ────────────────────
+@app.get("/api/whatsapp/webhook")
+async def whatsapp_webhook_status():
+    """Health check & verification endpoint for the WhatsApp bot webhook."""
+    return {
+        "status": "active",
+        "service": "FinGuard WhatsApp Forensic Shield",
+        "instructions": "Configure Twilio WhatsApp Sandbox incoming webhook to POST to this URL."
+    }
+
+@app.post("/api/whatsapp/webhook")
+@app.post("/api/whatsapp/webhook/")
+@app.post("/")
+async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
+    """
+    Receives incoming WhatsApp messages (text, voice note, video, image, APK)
+    via Twilio Webhook, runs FinGuard multimodal forensics, and replies.
+    """
+    form_data = await request.form()
+    sender = str(form_data.get("From") or "")
+    body = str(form_data.get("Body") or "").strip()
+    num_media_raw = form_data.get("NumMedia", "0")
+    try:
+        num_media = int(num_media_raw)
+    except Exception:
+        num_media = 0
+    media_url = form_data.get("MediaUrl0")
+    media_content_type = str(form_data.get("MediaContentType0") or "").lower()
+
+    # Determine public URL for complaint dossier links
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    proto = request.headers.get("x-forwarded-proto") or "https"
+    public_url = f"{proto}://{host}" if host else None
+
+    print(f"\n[WhatsApp Webhook] Headers: User-Agent={request.headers.get('user-agent')}, Host={request.headers.get('host')}")
+    print(f"[WhatsApp Webhook] Inbound from '{sender}' | Body: '{body}' | Media: {num_media}")
+
+    # Handle text commands (no media attached)
+    if num_media == 0 or not media_url:
+        body_clean = body.strip().lower()
+        body_words = re.sub(r'[^\w\s]', '', body_clean).split()
+        is_greeting = any(w in ["hi", "hello", "hey", "help", "start", "menu", "guide", "info", "namaste"] for w in body_words) and len(body_words) <= 3
+        is_status = any(w in ["status", "health", "ping"] for w in body_words) and len(body_words) <= 2
+
+        if is_greeting or not body_clean:
+            print(f"[WhatsApp Webhook] Returning official TwiML welcome guide")
+            return Response(content=build_twiml_response(get_welcome_guide()), media_type="application/xml")
+        elif is_status:
+            print(f"[WhatsApp Webhook] Returning official TwiML status guide")
+            return Response(content=build_twiml_response(get_status_guide()), media_type="application/xml")
+        else:
+            print(f"[WhatsApp Webhook] Analyzing text message: {body[:80]}...")
+            job_id = f"wa-text-{uuid.uuid4().hex[:8]}"
+            alert = analyze_whatsapp_text(
+                text=body,
+                job_id=job_id,
+                calculate_verdict_fn=calculate_calibrated_verdict,
+                build_evidence_fn=build_evidence_breakdown,
+                public_url=public_url
+            )
+            return Response(content=build_twiml_response(alert), media_type="application/xml")
+
+    # Handle Media attachments (Video, Audio, Image, APK)
+    job_id = f"wa-media-{uuid.uuid4().hex[:8]}"
+    temp_job_dir = os.path.join("temp", job_id)
+    os.makedirs(temp_job_dir, exist_ok=True)
+
+    # Detect file type from Content-Type or body
+    ext = ".bin"
+    is_video = "video" in media_content_type
+    is_audio = "audio" in media_content_type or "ogg" in media_content_type
+    is_image = "image" in media_content_type
+    is_apk = "android" in media_content_type or "package-archive" in media_content_type or body.lower().endswith(".apk")
+
+    if is_video:
+        ext = ".mp4"
+    elif is_audio:
+        ext = ".ogg" if "ogg" in media_content_type else ".mp3"
+    elif is_image:
+        ext = ".jpg" if ("jpeg" in media_content_type or "jpg" in media_content_type) else ".png"
+    elif is_apk:
+        ext = ".apk"
+
+    temp_file_path = os.path.join(temp_job_dir, f"media{ext}")
+
+    account_sid = os.getenv("TWILIO_ACCOUNT_SID", "")
+    auth_token = os.getenv("TWILIO_AUTH_TOKEN", "")
+
+    # For videos, if Twilio REST API credentials are configured,
+    # send an immediate acknowledgment and process asynchronously in background to avoid webhook timeouts!
+    if is_video and account_sid and auth_token:
+        def _bg_process_video():
+            try:
+                ok = download_twilio_media(media_url, temp_file_path)
+                if not ok:
+                    send_twilio_message(sender, "⚠️ *FinGuard Error:* Unable to retrieve your forwarded video from WhatsApp. Please try sending it again.")
+                    return
+                alert = analyze_whatsapp_video(
+                    video_path=temp_file_path,
+                    temp_job_dir=temp_job_dir,
+                    job_id=job_id,
+                    calculate_verdict_fn=calculate_calibrated_verdict,
+                    build_evidence_fn=build_evidence_breakdown,
+                    public_url=public_url
+                )
+                send_twilio_message(sender, alert)
+            except Exception as e:
+                print(f"[WhatsApp] Video background processing error: {e}")
+                send_twilio_message(sender, f"⚠️ *FinGuard Error:* An error occurred while analyzing the video: {e}")
+            finally:
+                if os.path.exists(temp_job_dir):
+                    shutil.rmtree(temp_job_dir, ignore_errors=True)
+
+        background_tasks.add_task(_bg_process_video)
+        ack_msg = (
+            "🔍 *FinGuard Forensic Engine*: Video received!\n\n"
+            "Our GPU workstation is analyzing face frames, sensor noise residuals, voice cloning, and SEBI compliance.\n\n"
+            "⏳ _Please hold on, your full forensic report will be delivered directly here shortly!_"
+        )
+        return Response(content=build_twiml_response(ack_msg), media_type="application/xml")
+
+    # Otherwise process synchronously:
+    try:
+        ok = download_twilio_media(media_url, temp_file_path)
+        if not ok:
+            err_msg = "⚠️ *FinGuard Error:* Failed to download the attached media from WhatsApp. Please try sending again."
+            return Response(content=build_twiml_response(err_msg), media_type="application/xml")
+
+        if is_apk:
+            alert = analyze_whatsapp_apk(temp_file_path, job_id, filename="uploaded.apk", public_url=public_url)
+        elif is_image:
+            alert = analyze_whatsapp_image(temp_file_path, job_id, calculate_calibrated_verdict, build_evidence_breakdown, public_url)
+        elif is_audio:
+            alert = analyze_whatsapp_audio(temp_file_path, job_id, calculate_calibrated_verdict, build_evidence_breakdown, public_url)
+        elif is_video:
+            alert = analyze_whatsapp_video(temp_file_path, temp_job_dir, job_id, calculate_calibrated_verdict, build_evidence_breakdown, public_url)
+        else:
+            alert = "⚠️ *FinGuard Notice:* Unsupported file type received. Please send text, voice notes, videos, screenshots, or APKs."
+
+        return Response(content=build_twiml_response(alert), media_type="application/xml")
+    except Exception as e:
+        print(f"[WhatsApp] Error during media scan: {e}")
+        err_msg = f"⚠️ *FinGuard Forensic Error:* {str(e)}"
+        return Response(content=build_twiml_response(err_msg), media_type="application/xml")
+    finally:
+        if not is_video and os.path.exists(temp_job_dir):
+            shutil.rmtree(temp_job_dir, ignore_errors=True)
 
 
 # ── Health check ────────────────────────────────────────────────────
