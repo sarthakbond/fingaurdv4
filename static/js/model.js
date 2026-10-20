@@ -36,34 +36,21 @@ export const TIERS = {
  * as required by banking guidelines.
  */
 export function mapVerdictLabel(rawVerdict, isDeepfake, isScam, degraded = false) {
-  if (degraded) return 'Analysis incomplete';
-  const v = String(rawVerdict || '').toLowerCase();
-
-  if (v.includes('deepfake + scam') || (isDeepfake && isScam)) {
-    return 'Possible scam and AI-generated content detected';
-  }
-  if (v.includes('deepfake') || isDeepfake) {
-    return 'Possible AI-generated or altered content';
-  }
-  if (isScam || (v.includes('scam') && !v.includes('no scam')) || (v.includes('violation') && !v.includes('no violation'))) {
-    return 'Possible scam detected';
-  }
-  if (v.includes('review') || v.includes('suspicious')) {
-    return 'Review recommended';
-  }
-  if (v.includes('safe') || v.includes('clean') || v.includes('no clear warning')) {
-    return 'No clear warning signs found';
-  }
-  return 'Review recommended';
+  if (degraded) return TIERS.unknown.label;
+  const tier = tierFromVerdict(rawVerdict);
+  if (tier !== TIERS.unknown) return tier.label;
+  if (isDeepfake === true && isScam === true) return TIERS.critical.label;
+  if (isDeepfake === true || isScam === true) return TIERS.high.label;
+  return TIERS.unknown.label;
 }
 
 export function tierFromVerdict(verdict, degraded = false) {
   if (degraded) return TIERS.unknown;
   const v = String(verdict || '').toLowerCase();
   if (v.startsWith('critical')) return TIERS.critical;
-  if (v.startsWith('warning')) return TIERS.high;
-  if (v.startsWith('suspicious')) return TIERS.moderate;
-  if (v.startsWith('safe')) return TIERS.low;
+  if (v.startsWith('warning') || v.startsWith('high')) return TIERS.high;
+  if (v.startsWith('suspicious') || v.includes('review')) return TIERS.moderate;
+  if (v.startsWith('safe') || v.startsWith('clean') || v.startsWith('low')) return TIERS.low;
   return TIERS.unknown;
 }
 
@@ -238,13 +225,38 @@ export function toViewModel(raw, meta = {}) {
   const registry = raw.registry_check || {};
   const impersonation = raw.impersonation_check || {};
   const degradedModules = arr(raw.degraded_modules);
-  const isDegraded = degradedModules.length > 0 && Boolean(raw.fallback_used);
+  const rawVerdict = typeof raw.verdict === 'string' ? raw.verdict.trim() : '';
+  const isDegraded = degradedModules.length > 0
+    || Boolean(raw.fallback_used)
+    || /incomplete|degraded/i.test(rawVerdict);
 
-  const isDeepfake = Boolean(raw.is_deepfake);
-  const isScam = Boolean(raw.is_scam);
-  const rawVerdict = String(raw.verdict || 'Suspicious: Review Recommended');
-  const verdictLabel = mapVerdictLabel(rawVerdict, isDeepfake, isScam, isDegraded);
-  const tier = tierFromVerdict(rawVerdict, isDegraded);
+  const isDeepfake = typeof raw.is_deepfake === 'boolean' ? raw.is_deepfake : null;
+  const isScam = typeof raw.is_scam === 'boolean'
+    ? raw.is_scam
+    : typeof sebi.is_scam_likely === 'boolean'
+      ? sebi.is_scam_likely
+      : null;
+  let tier = tierFromVerdict(rawVerdict, isDegraded);
+  if (!rawVerdict && !isDegraded) {
+    const urlResult = raw.url_result || {};
+    const apkResult = raw.apk_result || raw.apk_analysis || {};
+    if (typeof urlResult.is_phishing === 'boolean') {
+      tier = urlResult.is_phishing ? TIERS.high : TIERS.low;
+    } else if (typeof apkResult.is_suspicious === 'boolean' || typeof apkResult.suspicious === 'boolean') {
+      tier = (apkResult.is_suspicious ?? apkResult.suspicious) ? TIERS.high : TIERS.low;
+    } else if (isDeepfake === true && isScam === true) {
+      tier = TIERS.critical;
+    } else if (isDeepfake === true || isScam === true) {
+      tier = TIERS.high;
+    } else if (isDeepfake === false && isScam === false) {
+      tier = TIERS.low;
+    }
+  }
+  const verdictLabel = rawVerdict
+    ? tier.label
+    : tier.label !== TIERS.unknown.label
+      ? tier.label
+      : mapVerdictLabel('', isDeepfake, isScam, isDegraded);
   const clockFor = buildQuoteClock(raw);
 
   const visionScore = num(raw.vision_score);
@@ -252,19 +264,10 @@ export function toViewModel(raw, meta = {}) {
   const scamScore = num(raw.composite_risk_score);
   const flaggedAudio = arr(raw.flagged_audio_segments);
   const audioSegments = arr(raw.all_audio_segments);
-
-  /* Attribute peak signal specifically without merging */
-  const signalInputs = [
-    { key: 'visual', label: 'Visual detector score', value: visionScore },
-    { key: 'voice',  label: 'AI Voice Score',        value: audioScore },
-    { key: 'scam',   label: 'Financial risk score',  value: scamScore },
-  ].filter((s) => s.value !== null && Number.isFinite(s.value));
-
-  const leadingSignal = signalInputs.length
-    ? signalInputs.reduce((max, cur) => cur.value > max.value ? cur : max)
+  const visualHeatmap = typeof raw.heatmap_base64 === 'string'
+    && /^data:image\/(?:png|jpeg|webp);base64,/i.test(raw.heatmap_base64)
+    ? raw.heatmap_base64
     : null;
-  const peakSignal = leadingSignal ? leadingSignal.value : null;
-  const peakSignalLabel = leadingSignal ? leadingSignal.label : 'Score';
 
   /* ── 1. Video Authenticity (Visual Forensics) ─────────────────────────── */
   let videoModality = null;
@@ -272,10 +275,10 @@ export function toViewModel(raw, meta = {}) {
     videoModality = {
       available: false,
       title: 'Video Authenticity',
-      status: 'Not examined',
+      status: 'Not available',
       score: null,
-      scoreFormatted: 'N/A',
-      summary: 'This scan did not contain video frames, so visual forensic analysis was not performed.',
+      scoreFormatted: 'Not available',
+      summary: 'Not available',
       isFlagged: false,
       heatmap: null,
       details: [],
@@ -301,7 +304,7 @@ export function toViewModel(raw, meta = {}) {
           ? 'Facial regions scored above the manipulation threshold. Spatial and frequency residuals indicate potential deepfake alterations.'
           : 'Sampled face frames scored below the visual manipulation threshold.',
       isFlagged: isVisionFlagged,
-      heatmap: raw.heatmap_base64 || null,
+      heatmap: visualHeatmap,
       details: noFacesDetected ? [
         { label: 'Face Detection Status', value: '0 faces located in sampled keyframes' },
         { label: 'Evaluation Note', value: 'Non-facial media / slides or screen share' },
@@ -320,10 +323,10 @@ export function toViewModel(raw, meta = {}) {
     audioModality = {
       available: false,
       title: 'Audio Check',
-      status: 'Not examined',
+      status: 'Not available',
       score: null,
-      scoreFormatted: 'N/A',
-      summary: 'No audio was found in this file.',
+      scoreFormatted: 'Not available',
+      summary: 'Not available',
       isFlagged: false,
       flaggedCount: 0,
       totalWindows: 0,
@@ -332,20 +335,20 @@ export function toViewModel(raw, meta = {}) {
   } else {
     // Strictly evaluate audio modality based on audio detector score and flagged audio segments.
     // In video scans, raw.is_deepfake reflects overall media manipulation (face OR voice).
-    const totalParts = audioSegments.length || 1;
+    const totalParts = audioSegments.length || (num(raw.audio_total_windows) ?? null);
     const flaggedParts = flaggedAudio.length;
     const isAudioDegraded = degradedModules.includes('stage3_audio');
     const isAudioSynthetic = (audioScore !== null && audioScore >= 0.50)
       || flaggedParts > 0
-      || (raw.scan_type === 'audio' && Boolean(raw.is_deepfake));
+      || (raw.scan_type === 'audio' && raw.is_deepfake === true);
     const isAudioFlagged = Boolean(isAudioSynthetic);
 
     // Plain, everyday English status:
     // - "AI Voice Detected": classified as synthetic (score >= 0.50 or flagged windows)
     // - "Could Not Confirm Voice Type": inconclusive / degraded
     // - "Human Voice Detected": classified as genuine
-    let audioStatus = 'Human Voice Detected';
-    let audioBadgeClass = 'fg-badge--safe';
+    let audioStatus = 'Voice result not available';
+    let audioBadgeClass = 'fg-badge--idle';
 
     if (isAudioSynthetic) {
       audioStatus = 'AI Voice Detected';
@@ -353,15 +356,24 @@ export function toViewModel(raw, meta = {}) {
     } else if (isAudioDegraded) {
       audioStatus = 'Could Not Confirm Voice Type';
       audioBadgeClass = 'fg-badge--warn';
+    } else if (audioScore < 0.50 || (raw.scan_type === 'audio' && raw.is_deepfake === false)) {
+      audioStatus = 'Human Voice Detected';
+      audioBadgeClass = 'fg-badge--safe';
     }
 
-    let audioSummary = `All ${totalParts} evaluated audio parts show natural human voice patterns.`;
+    let audioSummary = 'Not available';
     if (audioStatus === 'AI Voice Detected') {
-      audioSummary = `${flaggedParts > 0 ? flaggedParts : totalParts} of ${totalParts} audio parts showed AI-generated voice characteristics (AI Voice Score: ${(audioScore * 100).toFixed(1)}%).`;
+      audioSummary = totalParts === null
+        ? `AI Voice Score: ${(audioScore * 100).toFixed(1)}%.`
+        : `${flaggedParts > 0 ? flaggedParts : totalParts} of ${totalParts} audio parts showed AI-generated voice characteristics (AI Voice Score: ${(audioScore * 100).toFixed(1)}%).`;
     } else if (audioStatus === 'Could Not Confirm Voice Type') {
       audioSummary = `Audio evaluation was inconclusive or operated in degraded mode. Voice type could not be confirmed with certainty.`;
     } else if (flaggedParts > 0) {
-      audioSummary = `${totalParts - flaggedParts} of ${totalParts} audio parts confirmed natural human voice patterns (AI Voice Score: ${(audioScore * 100).toFixed(1)}%).`;
+      audioSummary = totalParts === null
+        ? `AI Voice Score: ${(audioScore * 100).toFixed(1)}%.`
+        : `${Math.max(0, totalParts - flaggedParts)} of ${totalParts} audio parts confirmed natural human voice patterns (AI Voice Score: ${(audioScore * 100).toFixed(1)}%).`;
+    } else if (audioStatus === 'Human Voice Detected') {
+      audioSummary = `AI Voice Score: ${(audioScore * 100).toFixed(1)}%.`;
     }
 
     audioModality = {
@@ -379,7 +391,7 @@ export function toViewModel(raw, meta = {}) {
       details: [
         { label: 'AI Voice Score', value: `${(audioScore * 100).toFixed(1)}%` },
         { label: 'Evaluation Threshold', value: '50.0%' },
-        { label: 'Flagged Audio Parts', value: `${flaggedParts} of ${totalParts}` },
+        ...(totalParts === null ? [] : [{ label: 'Flagged Audio Parts', value: `${flaggedParts} of ${totalParts}` }]),
         ...(impersonation.target ? [{ label: 'Impersonation Target', value: impersonation.target }] : []),
       ],
     };
@@ -388,30 +400,38 @@ export function toViewModel(raw, meta = {}) {
   /* ── 3. Scam Check ──────────────────────────────────────────────────────── */
   const signalScores = sebi.signal_scores && typeof sebi.signal_scores === 'object' ? sebi.signal_scores : {};
   const totalQuotedClaims = CLAIM_GROUPS.reduce((n, g) => n + arr(sebi[g.field]).length, 0);
+  const hasClaimFields = CLAIM_GROUPS.some((group) => Object.prototype.hasOwnProperty.call(sebi, group.field));
+  const hasScamResult = isScam !== null || scamScore !== null || hasClaimFields;
 
   const contentIntent = String(sebi.content_intent || raw.content_intent || '').toLowerCase();
   const analysisStatus = String(sebi.analysis_status || raw.analysis_status || '').toLowerCase();
   const speakerStance = String(sebi.speaker_stance || raw.speaker_stance || '').toLowerCase();
   const awarenessDetected = Boolean(sebi.awareness_context_detected || raw.awareness_context_detected);
-  const isScamLikely = Boolean(sebi.is_scam_likely ?? raw.is_scam_likely ?? isScam);
+  const isScamLikely = typeof sebi.is_scam_likely === 'boolean'
+    ? sebi.is_scam_likely
+    : typeof raw.is_scam_likely === 'boolean'
+      ? raw.is_scam_likely
+      : isScam;
 
   const isAwareness = (
     contentIntent === 'awareness_warning' ||
-    (awarenessDetected && !isScamLikely) ||
-    (speakerStance === 'warning' && !isScamLikely)
+    (awarenessDetected && isScamLikely !== true) ||
+    (speakerStance === 'warning' && isScamLikely !== true)
   );
 
-  const isAmbiguous = !isScam && !isAwareness && (
+  const isAmbiguous = isScam !== true && !isAwareness && (
     contentIntent === 'ambiguous' ||
     analysisStatus === 'conflict_review' ||
     speakerStance === 'ambiguous'
   );
 
-  let scamStatus = 'No Scam Patterns Detected';
-  let scamSummary = 'No fraudulent promises, pressure tactics, or scam patterns were identified in the spoken content.';
+  let scamStatus = hasScamResult ? 'No Scam Patterns Detected' : 'Not available';
+  let scamSummary = hasScamResult
+    ? 'No scam indicators were reported by the available analysis fields.'
+    : 'Not available';
   let quotedLabel = 'Quoted Statements';
 
-  if (isScam && !isAwareness) {
+  if (isScam === true && !isAwareness) {
     scamStatus = 'Scam Warning';
     scamSummary = 'Speech or textual content contains high-risk promises, pressure tactics, or unauthorized investment advice.';
     quotedLabel = 'Quoted Violations';
@@ -426,16 +446,16 @@ export function toViewModel(raw, meta = {}) {
   }
 
   const scamModality = {
-    available: scamScore !== null,
+    available: hasScamResult,
     title: 'Scam Check',
     status: scamStatus,
     score: scamScore,
     scoreFormatted: scamScore !== null ? `${(scamScore * 100).toFixed(0)}%` : 'N/A',
     summary: scamSummary,
-    isFlagged: isScam && !isAwareness,
+    isFlagged: isScam === true && !isAwareness,
     isReview: isAmbiguous || (isDegraded && !isScam && !isAwareness),
     isAwareness: isAwareness,
-    badgeClass: (isScam && !isAwareness)
+    badgeClass: (isScam === true && !isAwareness)
       ? 'fg-badge--high'
       : (isAmbiguous || (isDegraded && !isAwareness))
         ? 'fg-badge--warn'
@@ -443,28 +463,30 @@ export function toViewModel(raw, meta = {}) {
           ? 'fg-badge--safe'
           : 'fg-badge--idle',
     quotedLabel,
-    quotedCount: totalQuotedClaims,
+    quotedCount: hasClaimFields ? totalQuotedClaims : null,
     injectionDetected: Boolean(sebi.prompt_injection_detected),
     signals: Object.entries(SIGNAL_LABELS).map(([key, label]) => ({
       key,
       label,
-      score: signalScores[key] !== undefined ? Math.round((signalScores[key] || 0) * 100) : 0,
-      active: (signalScores[key] || 0) >= 0.35,
+      score: num(signalScores[key]) === null ? null : Math.round(signalScores[key] * 100),
+      active: num(signalScores[key]) !== null && signalScores[key] >= 0.35,
     })),
     segmentsAnalysis: arr(sebi.segments_analysis || raw.segments_analysis),
   };
 
   /* ── 4. SEBI Registry Verification ────────────────────────────────────── */
-  const registryVerdict = String(registry.verdict || 'not claimed');
+  const registryVerdict = typeof registry.verdict === 'string' ? registry.verdict : '';
   const registryInfo = REGISTRY_READING[registryVerdict] || {
     tier: 'unknown',
-    badge: registryVerdict,
-    label: registryVerdict,
-    text: 'The registry verification returned an unrecognised state.',
+    badge: registryVerdict === 'not checked' || !registryVerdict ? 'Not available' : registryVerdict,
+    label: registryVerdict === 'not checked' || !registryVerdict ? 'Not available' : registryVerdict,
+    text: registryVerdict === 'not checked' || !registryVerdict
+      ? 'Not available'
+      : 'The registry verification returned an unrecognised state.',
   };
   const matchedEntity = registry.matched_entity || null;
   const registryModality = {
-    available: true,
+    available: Boolean(registryVerdict && registryVerdict !== 'not checked'),
     title: 'SEBI Registry Verification',
     verdict: registryVerdict,
     badge: registryInfo.badge,
@@ -485,20 +507,41 @@ export function toViewModel(raw, meta = {}) {
   const urlScan = raw.url_result || {};
   const hasNetworkThreats = Boolean(
     domScan.is_phishing ||
+    domScan.any_phishing ||
     urlScan.is_phishing ||
     apkScan.is_suspicious ||
     apkScan.suspicious
   );
+  const networkDetails = [
+    ['URL / Domain', urlScan.input || domScan.domain || urlScan.normalised_host || domScan.normalised_host],
+    ['URLs found', Array.isArray(domScan.urls_found) ? domScan.urls_found.join(', ') : undefined],
+    ['Phishing status', typeof urlScan.is_phishing === 'boolean'
+      ? (urlScan.is_phishing ? 'Flagged' : 'Not flagged')
+      : typeof domScan.any_phishing === 'boolean'
+        ? (domScan.any_phishing ? 'Flagged' : 'Not flagged')
+        : undefined],
+    ['Risk level', urlScan.risk_level],
+    ['Matched legitimate domain', urlScan.matched_legitimate_domain || urlScan.closest_match || domScan.closest_match],
+    ['Legitimate broker', urlScan.legitimate_broker],
+    ['Reason', urlScan.reason || domScan.reason],
+    ['APK package', apkScan.package_name],
+    ['App name', apkScan.app_name],
+    ['Suspicious APK status', typeof apkScan.is_suspicious === 'boolean' ? (apkScan.is_suspicious ? 'Flagged' : 'Not flagged') : undefined],
+    ['Impersonated broker', apkScan.impersonated_broker],
+    ['Dangerous permissions', arr(apkScan.dangerous_permissions_found || apkScan.dangerous_permissions).join(', ') || undefined],
+    ['Reason', apkScan.reason],
+  ].filter(([, value]) => value !== undefined && value !== null && value !== '');
 
   const networkModality = {
     available: Boolean(raw.domain_scan || raw.apk_analysis || raw.apk_result || raw.url_result),
     title: 'Network & Application Security',
     hasThreats: hasNetworkThreats,
-    phishingDomain: domScan.domain || urlScan.domain || null,
+    phishingDomain: domScan.domain || urlScan.domain || urlScan.normalised_host || null,
     phishingReason: domScan.reason || urlScan.reason || null,
-    targetBrand: domScan.closest_match || urlScan.closest_match || null,
+    targetBrand: domScan.closest_match || urlScan.closest_match || urlScan.matched_legitimate_domain || null,
     apkPackage: apkScan.package_name || null,
-    dangerousPermissions: arr(apkScan.dangerous_permissions),
+    dangerousPermissions: arr(apkScan.dangerous_permissions_found || apkScan.dangerous_permissions),
+    details: networkDetails,
   };
 
   /* ── 6. Evidence Items Audit Trail ────────────────────────────────────── */
@@ -517,9 +560,7 @@ export function toViewModel(raw, meta = {}) {
         tier: isAmbiguous ? 'moderate' : group.tier,
         source: 'Transcript / OCR Analysis',
         title: isAmbiguous ? `${group.kind} (Review Required)` : `${group.kind} detected`,
-        body: isAmbiguous
-          ? `Extracted claim under compliance review: ${group.why}`
-          : group.why,
+        body: '',
         quote: String(quote),
         timestamp: clockFor(quote),
       });
@@ -553,13 +594,14 @@ export function toViewModel(raw, meta = {}) {
   }
 
   // AI Provenance Watermark (Google Gemini / Veo diamond star)
-  if (raw.ai_watermark && raw.ai_watermark.watermark_detected) {
+  if (raw.ai_watermark?.watermark_detected
+    && (raw.ai_watermark.provenance || raw.ai_watermark.details)) {
     pushEvidence({
       kind: 'AI Provenance Watermark',
       tier: 'critical',
       source: 'Gemini Watermark Detector',
-      title: raw.ai_watermark.provenance || 'Google Gemini / Veo AI Provenance Watermark',
-      body: raw.ai_watermark.details || 'Google Gemini 4-pointed diamond sparkle watermark detected. Conclusive 100% confirmation of synthetic AI generation.',
+      title: raw.ai_watermark.provenance || 'AI watermark',
+      body: raw.ai_watermark.details || '',
       quote: null,
       timestamp: null,
     });
@@ -579,13 +621,13 @@ export function toViewModel(raw, meta = {}) {
   }
 
   // Network / Domain / APK threats
-  if (domScan.is_phishing || urlScan.is_phishing) {
+  if (domScan.is_phishing || domScan.any_phishing || urlScan.is_phishing) {
     pushEvidence({
       kind: 'Phishing Threat',
       tier: 'critical',
       source: 'Domain Forensics',
-      title: `Suspicious domain: ${domScan.domain || urlScan.domain}`,
-      body: domScan.reason || urlScan.reason || 'Domain impersonates a registered stockbroker platform.',
+      title: `Suspicious domain: ${domScan.domain || urlScan.domain || urlScan.normalised_host || 'Not available'}`,
+      body: domScan.reason || urlScan.reason || '',
       quote: null,
       timestamp: null,
     });
@@ -597,7 +639,19 @@ export function toViewModel(raw, meta = {}) {
       tier: 'critical',
       source: 'APK Forensics',
       title: `Suspicious application: ${apkScan.package_name || 'Rogue APK'}`,
-      body: apkScan.reason || 'Application requests dangerous permissions without official broker certification.',
+      body: apkScan.reason || '',
+      quote: null,
+      timestamp: null,
+    });
+  }
+
+  for (const signal of arr(raw.evidence_breakdown?.contributing_signals)) {
+    pushEvidence({
+      kind: 'Backend contributing signal',
+      tier: 'unknown',
+      source: 'Backend evidence breakdown',
+      title: 'Backend-reported signal',
+      body: String(signal),
       quote: null,
       timestamp: null,
     });
@@ -607,16 +661,20 @@ export function toViewModel(raw, meta = {}) {
   let overallSummary = cleanDiagnosticTags(raw.overall_summary);
   if (!overallSummary) {
     const cleanedReasoning = cleanDiagnosticTags(sebi.reasoning);
-    if (isDeepfake && isScam) {
-      overallSummary = `High risk: Synthetic media detected alongside deceptive financial solicitations. ${cleanedReasoning}`;
-    } else if (isDeepfake) {
-      overallSummary = `Synthetic media detected by forensic detectors (${peakSignalLabel}: ${(peakSignal * 100).toFixed(0)}%). Spoken content contained no fraudulent claims: ${cleanedReasoning || 'General commentary with no high-risk SEBI violations flagged.'}`;
-    } else if (isScam) {
-      overallSummary = `Financial scam / SEBI regulatory violation flagged. Media showed no synthetic manipulation. ${cleanedReasoning}`;
-    } else if (tier.key === 'moderate') {
-      overallSummary = `Review recommended: The content or adviser credentials require independent verification. ${cleanedReasoning}`;
+    if (cleanedReasoning) {
+      overallSummary = cleanedReasoning;
+    } else if (isDeepfake === true && isScam === true) {
+      overallSummary = 'The backend reported synthetic media and scam indicators.';
+    } else if (isDeepfake === true) {
+      overallSummary = 'The backend reported synthetic media indicators. This does not by itself establish financial fraud.';
+    } else if (isScam === true) {
+      overallSummary = 'The backend reported scam indicators. Media authenticity is assessed separately.';
+    } else if (isDeepfake === false && isScam === false) {
+      overallSummary = 'The backend reported no synthetic-media or scam indicators in the available analysis.';
+    } else if (urlScan.reason || apkScan.reason) {
+      overallSummary = urlScan.reason || apkScan.reason;
     } else {
-      overallSummary = cleanedReasoning || 'No clear warning signs or synthetic manipulation were identified across the examined content.';
+      overallSummary = 'Not available';
     }
   }
 
@@ -625,10 +683,20 @@ export function toViewModel(raw, meta = {}) {
 
   /* ── 9. Interactive Transcript ─────────────────────────────────────────── */
   const transcriptSegments = arr(raw.segments).map((s) => ({
-    start: num(s.start) ?? 0,
-    end: num(s.end) ?? 0,
+    start: num(s.start),
+    end: num(s.end),
     text: String(s.text || ''),
   }));
+  const scoresComplaint = typeof raw.scores_complaint === 'string' && raw.scores_complaint.trim()
+    ? raw.scores_complaint
+    : null;
+  const evidenceAvailable = (raw.evidence_breakdown && typeof raw.evidence_breakdown === 'object')
+    || typeof raw.is_deepfake === 'boolean'
+    || typeof raw.is_scam === 'boolean'
+    || visionScore !== null
+    || audioScore !== null
+    || scamScore !== null
+    || Boolean(raw.url_result || raw.apk_result || raw.apk_analysis);
 
   return {
     mode: meta.mode || raw.scan_type || 'video',
@@ -642,8 +710,8 @@ export function toViewModel(raw, meta = {}) {
     isDegraded,
     degradedModules,
 
-    peakSignal,
-    peakSignalLabel,
+    peakSignal: scamScore,
+    peakSignalLabel: scamScore === null ? 'Risk score not available' : 'Backend-reported risk score',
     overallSummary,
 
     isDeepfake,
@@ -658,13 +726,17 @@ export function toViewModel(raw, meta = {}) {
 
     // Findings & Actions
     evidence,
+    evidenceAvailable,
     nextSteps,
 
     // Media & Transcripts
     transcript: transcriptSegments,
-    transcriptText: String(raw.transcript || ''),
+    transcriptAvailable: transcriptSegments.length > 0 || (typeof raw.transcript === 'string' && raw.transcript.trim().length > 0),
+    timeline: arr(raw.timeline_track),
+    transcriptText: typeof raw.transcript === 'string' ? raw.transcript : '',
     segmentsAnalysis: arr(sebi.segments_analysis || raw.segments_analysis),
-    scoresComplaint: raw.scores_complaint || null,
+    scoresComplaint,
+    hasScoresComplaint: scoresComplaint !== null,
 
     raw,
   };

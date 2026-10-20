@@ -24,8 +24,8 @@ import { planFor } from './stages.js';
  * 1. window.FINGUARD_API_BASE or window.__FINGUARD_API_BASE__
  * 2. <meta name="finguard-api-base" content="...">
  * 3. localStorage.getItem('finguard_api_base')
- * 4. In development: if loaded from localhost:3000 (standalone frontend runner),
- *    defaults to http://localhost:8000 (FastAPI backend server)
+ * 4. When using the standalone runner, defaults to "" so /api requests use its
+ *    configured backend proxy.
  * 5. In production / same-origin: defaults to "" (relative path)
  */
 export function getApiBase() {
@@ -45,10 +45,6 @@ export function getApiBase() {
     if (stored) return stored.replace(/\/+$/, '');
   } catch (_) {
     // Storage access might be restricted in some iframe contexts
-  }
-  // Standalone frontend runner convention (port 3000 -> backend on port 8000)
-  if (window.location && window.location.hostname === 'localhost' && window.location.port === '3000') {
-    return 'http://localhost:8000';
   }
   return '';
 }
@@ -81,16 +77,51 @@ export class ServiceError extends Error {
   }
 }
 
-async function readError(response) {
-  let detail = '';
-  let parsed = null;
+async function fetchWithTimeout(url, options = {}, timeoutMs = 300000, parseResponse = (response) => response) {
+  const controller = new AbortController();
+  const callerSignal = options.signal;
+  let timedOut = false;
+  let timeoutId;
+  const abortFromCaller = () => controller.abort();
+
+  if (callerSignal?.aborted) {
+    controller.abort();
+  } else {
+    callerSignal?.addEventListener('abort', abortFromCaller, { once: true });
+  }
+
+  timeoutId = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, timeoutMs);
+
   try {
-    parsed = await response.json();
-    detail = typeof parsed?.detail === 'string'
-      ? parsed.detail
-      : (parsed?.error || JSON.stringify(parsed?.detail ?? parsed));
-  } catch (_) {
-    detail = await response.text().catch(() => '');
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return await parseResponse(response);
+  } catch (error) {
+    if (timedOut) {
+      throw new ServiceError(`The request timed out after ${Math.round(timeoutMs / 1000)} seconds. Please retry.`, 408);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    callerSignal?.removeEventListener('abort', abortFromCaller);
+  }
+}
+
+async function readError(response) {
+  const responseText = await response.text();
+  let detail = responseText;
+  let parsed = null;
+  if (responseText) {
+    try {
+      parsed = JSON.parse(responseText);
+      detail = typeof parsed?.detail === 'string'
+        ? parsed.detail
+        : (parsed?.error || JSON.stringify(parsed?.detail ?? parsed));
+    } catch (_) {
+      detail = responseText;
+    }
   }
   const fallbackMessage = response.status === 413
     ? 'The uploaded file exceeds the 100 MB size limit.'
@@ -110,30 +141,25 @@ async function asJson(response) {
 /* ── Core API Endpoints ──────────────────────────────────────────────────── */
 
 export async function health(signal) {
-  const res = await fetch(apiUrl('/api/health'), { cache: 'no-store', signal });
-  return asJson(res);
+  return fetchWithTimeout(apiUrl('/api/health'), { cache: 'no-store', signal }, 8000, asJson);
 }
 
 export async function registryStatus(signal) {
-  const res = await fetch(apiUrl('/api/registry/status'), { cache: 'no-store', signal });
-  return asJson(res);
+  return fetchWithTimeout(apiUrl('/api/registry/status'), { cache: 'no-store', signal }, 15000, asJson);
 }
 
 export async function registrySearch(q, signal) {
-  const res = await fetch(apiUrl(`/api/registry/search?q=${encodeURIComponent(q)}`), { cache: 'no-store', signal });
-  return asJson(res);
+  return fetchWithTimeout(apiUrl(`/api/registry/search?q=${encodeURIComponent(q)}`), { cache: 'no-store', signal }, 15000, asJson);
 }
-
 
 async function postMultipart(path, file, signal) {
   const form = new FormData();
   form.append('file', file, file.name);
-  const res = await fetch(apiUrl(path), {
+  return fetchWithTimeout(apiUrl(path), {
     method: 'POST',
     body: form,
     signal,
-  });
-  return asJson(res);
+  }, 300000, asJson);
 }
 
 export const createVideoJob = (file, signal) => postMultipart('/api/jobs', file, signal);
@@ -142,40 +168,38 @@ export const scanImage      = (file, signal) => postMultipart('/api/scan/image',
 export const scanApk        = (file, signal) => postMultipart('/api/scan/apk', file, signal);
 
 export async function scanText(text, signal) {
-  const res = await fetch(apiUrl('/api/scan/text'), {
+  return fetchWithTimeout(apiUrl('/api/scan/text'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text }),
     signal,
-  });
-  return asJson(res);
+  }, 300000, asJson);
 }
 
 export async function scanUrl(url, signal) {
-  const res = await fetch(apiUrl('/api/scan/url'), {
+  return fetchWithTimeout(apiUrl('/api/scan/url'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
     signal,
-  });
-  return asJson(res);
+  }, 300000, asJson);
 }
 
 export async function getJob(jobId, signal) {
-  const res = await fetch(apiUrl(`/api/jobs/${encodeURIComponent(jobId)}`), {
+  return fetchWithTimeout(apiUrl(`/api/jobs/${encodeURIComponent(jobId)}`), {
     cache: 'no-store',
     signal,
-  });
-  return asJson(res);
+  }, 15000, asJson);
 }
 
 export async function getJobComplaint(jobId, signal) {
-  const res = await fetch(apiUrl(`/api/jobs/${encodeURIComponent(jobId)}/complaint`), {
+  return fetchWithTimeout(apiUrl(`/api/jobs/${encodeURIComponent(jobId)}/complaint`), {
     cache: 'no-store',
     signal,
+  }, 30000, async (res) => {
+    if (!res.ok) throw await readError(res);
+    return res.text();
   });
-  if (!res.ok) throw await readError(res);
-  return res.text();
 }
 
 /** URL for direct browser download of a completed job's complaint draft. */
@@ -224,11 +248,17 @@ export function validateUrl(url) {
   if (trimmed.length < LIMITS.minUrlChars) {
     return { ok: false, message: 'Please enter a valid website address or domain.' };
   }
-  const hasDot = trimmed.includes('.');
-  if (!hasDot) {
+  const normalized = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch (_) {
+    return { ok: false, message: 'Enter a valid website address or domain (for example, example.com).' };
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol) || !parsed.hostname.includes('.')) {
     return { ok: false, message: 'Please enter a complete domain or URL (e.g. https://example.com).' };
   }
-  return { ok: true };
+  return { ok: true, value: normalized };
 }
 
 /* ── Analysis Orchestration & Job Polling ────────────────────────────────── */
@@ -247,25 +277,33 @@ export function startRun(mode, payload, handlers) {
   const controller = new AbortController();
   let stopped = false;
   let activePollTimeout = null;
+  let consecutivePollErrors = 0;
+  const startedAt = Date.now();
+  const maxRunDurationMs = 15 * 60 * 1000;
 
   const emit = {
     job: (jobId) => handlers.onJob?.(jobId),
     stage: (index, state) => handlers.onStage?.(index, state),
-    progress: (fraction) => handlers.onProgress?.(Math.max(0, Math.min(1, fraction))),
     status: (text) => handlers.onStatus?.(text),
+  };
+
+  const clearPollTimeout = () => {
+    if (!activePollTimeout) return;
+    clearTimeout(activePollTimeout);
+    activePollTimeout = null;
   };
 
   const finish = (result) => {
     if (stopped) return;
     stopped = true;
-    if (activePollTimeout) clearTimeout(activePollTimeout);
+    clearPollTimeout();
     handlers.onDone?.(result);
   };
 
   const fail = (error) => {
     if (stopped) return;
     stopped = true;
-    if (activePollTimeout) clearTimeout(activePollTimeout);
+    clearPollTimeout();
     if (error?.name === 'AbortError') return;
     handlers.onError?.(error);
   };
@@ -280,82 +318,88 @@ export function startRun(mode, payload, handlers) {
     }
 
     const jobId = jobData.job_id;
+    if (typeof jobId !== 'string' || !jobId.trim()) {
+      return fail(new ServiceError('The analysis service returned an invalid job reference.', 502));
+    }
     emit.job(jobId);
-    let stageIndex = 0;
-    emit.stage(0, 'active');
-    emit.status(plan[0]?.status || 'Securing media and extracting frames...');
-
-    let pollAttempts = 0;
-    const maxPollAttempts = 360; // Up to ~6 minutes of polling
-    let consecutiveDropCount = 0;
+    emit.status('Video job submitted. Waiting for the backend to report its current stage.');
 
     const poll = async () => {
       if (stopped) return;
-      pollAttempts += 1;
 
-      if (pollAttempts > maxPollAttempts) {
-        return fail(new ServiceError('The analysis exceeded the maximum allowed time. Please retry with a shorter clip.', 408));
+      if (Date.now() - startedAt >= maxRunDurationMs) {
+        return fail(new ServiceError('Video analysis exceeded the 15-minute time limit. Please try again.', 408));
       }
 
       let job;
       try {
         job = await getJob(jobId, controller.signal);
-        consecutiveDropCount = 0;
       } catch (err) {
         if (err?.name === 'AbortError') return;
         if (err?.status === 404) return fail(err);
-        consecutiveDropCount += 1;
-        // Allow up to 3 momentary network hiccups before failing
-        if (consecutiveDropCount >= 4) {
+        consecutivePollErrors += 1;
+        if (consecutivePollErrors >= 4) {
           return fail(new ServiceError('Network connection to the analysis service was interrupted.', 0));
         }
-        activePollTimeout = setTimeout(poll, 2500);
+        const retryDelay = Math.min(10000, 1000 * (2 ** (consecutivePollErrors - 1)));
+        activePollTimeout = setTimeout(poll, retryDelay);
         return;
       }
+      consecutivePollErrors = 0;
 
-      // Sync stage progress with real backend stage state
-      const reportedIndex = plan.findIndex((s) => s.key === job.stage);
-      if (reportedIndex > stageIndex) {
-        for (let i = stageIndex; i < reportedIndex; i += 1) emit.stage(i, 'done');
-        stageIndex = reportedIndex;
-        emit.stage(stageIndex, 'active');
-        emit.status(plan[stageIndex]?.status || 'Processing...');
+      if (!job || typeof job !== 'object' || typeof job.status !== 'string') {
+        return fail(new ServiceError('The analysis service returned an invalid job status.', 502));
       }
 
-      // Calculate honest fraction based on verified completed stages
-      const baseProgress = stageIndex / Math.max(1, plan.length);
-      emit.progress(baseProgress);
-
-      if (job.status === 'completed' && job.result) {
-        plan.forEach((_, i) => emit.stage(i, 'done'));
-        emit.progress(1.0);
+      if (job.status === 'completed') {
+        if (!job.result || typeof job.result !== 'object') {
+          return fail(new ServiceError('The job completed without returning an analysis result.', 502));
+        }
+        plan.forEach((_, index) => emit.stage(index, 'done'));
         return finish(job.result);
       }
 
       if (job.status === 'failed') {
-        emit.stage(stageIndex, 'failed');
-        const failureMessage = job.error || 'The analysis service could not process this video.';
+        const failedIndex = plan.findIndex((stage) => stage.key === job.stage);
+        if (failedIndex >= 0) emit.stage(failedIndex, 'failed');
+        const failureMessage = typeof job.error === 'string' && job.error
+          ? job.error
+          : 'The analysis service could not process this video.';
         return fail(new ServiceError(failureMessage, 500));
+      }
+
+      if (job.status === 'processing' && typeof job.stage === 'string') {
+        const reportedIndex = plan.findIndex((stage) => stage.key === job.stage);
+        if (reportedIndex >= 0) {
+          emit.stage(reportedIndex, 'active');
+          emit.status(plan[reportedIndex].status);
+        } else {
+          emit.status('The backend is processing a stage that is not listed in this interface.');
+        }
+      } else if (job.status === 'processing') {
+        emit.status('The backend is processing this video; stage details are not available yet.');
+      } else if (job.status === 'queued') {
+        emit.status('Video job queued. Waiting for the backend to begin processing.');
+      } else if (job.status !== 'processing') {
+        return fail(new ServiceError(`The analysis service returned an unknown job status: ${job.status}.`, 502));
       }
 
       activePollTimeout = setTimeout(poll, 1200);
     };
 
-    activePollTimeout = setTimeout(poll, 800);
+    activePollTimeout = setTimeout(poll, 1000);
   }
 
   /* ── Synchronous Endpoints (Audio, Image, Text, URL, APK) ──────────────── */
   function synchronousSource(requestFn) {
-    emit.stage(0, 'active');
-    emit.status(plan[0]?.status || 'Executing forensic scan...');
-    // Indeterminate progress representation for synchronous requests
-    emit.progress(0.15);
+    emit.status('Request sent. Waiting for the backend to return its analysis.');
 
     requestFn(controller.signal)
       .then((result) => {
         if (stopped) return;
-        plan.forEach((_, i) => emit.stage(i, 'done'));
-        emit.progress(1.0);
+        if (!result || typeof result !== 'object') {
+          return fail(new ServiceError('The analysis service returned an invalid result.', 502));
+        }
         finish(result);
       })
       .catch((err) => {
@@ -379,7 +423,7 @@ export function startRun(mode, payload, handlers) {
     cancel() {
       if (stopped) return;
       stopped = true;
-      if (activePollTimeout) clearTimeout(activePollTimeout);
+      clearPollTimeout();
       controller.abort();
     },
   };

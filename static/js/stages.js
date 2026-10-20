@@ -96,6 +96,7 @@ export const STAGE_PLAN = {
     'stage2_vision',
     'stage4_transcription',
     'stage3_audio',
+    'stage7_ocr',
     'stage5_llm',
     'stage6_registry',
     'stage9_apk_domain',
