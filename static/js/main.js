@@ -141,7 +141,7 @@ function showRoute(route) {
 function initMotionEffects() {
   if (reducedMotion() || typeof IntersectionObserver === 'undefined') return;
 
-  const revealTargets = $$('#view-landing .fg-section-header, #view-landing .fg-step-box, #view-landing .fg-warning-card, #view-landing .fg-mode-card, #view-landing .fg-final-cta__inner, #view-how .fg-step-box, #view-features .fg-card, #view-technology .fg-card');
+  const revealTargets = $$('#view-landing .fg-section-header, #view-landing .fg-step-box, #view-landing .fg-mode-card, #view-landing .fg-final-cta__inner, #view-how .fg-step-box, #view-features .fg-card, #view-technology .fg-card');
   const orbit = $('.fg-hero-orbit');
   if (!revealTargets.length && !orbit) return;
 
