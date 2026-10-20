@@ -90,6 +90,7 @@ def test_whatsapp_webhook_phishing_url_analysis():
         data={"From": "whatsapp:+919876543210", "Body": url_msg, "NumMedia": "0"}
     )
     assert response.status_code == 200
+    text = response.text
     assert text.find("FinGuard Forensic Alert") != -1
     assert ("Domain Safety" in text or "Phishing" in text or "Risk" in text)
 

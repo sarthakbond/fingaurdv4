@@ -94,11 +94,13 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
 
     if not registry:
         print(f"[{job_id}] Warning: Registry is empty or file not found at {source_file}.")
-        result["verdict"] = "not found"
-        result["match_status"] = "absent"
+        result["verdict"] = "unavailable"
+        result["epistemic_status"] = "UNAVAILABLE"
+        result["match_status"] = "uncertain"
+        result["uncertainty_penalty"] = 0.15
         result["entity_type"] = None
         result["is_conclusive_fraud"] = False
-        result["explanation"] = "Local SEBI registry snapshot is currently unavailable. Cross-verify on official sebi.gov.in."
+        result["explanation"] = "Local SEBI registry snapshot is currently UNAVAILABLE. Zero-trust epistemic penalty applied; cross-verify on official sebi.gov.in."
         return result
 
     # Check by Registration Number (Strongest check)
@@ -116,6 +118,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
                 )
                 if best_score > name_number_thresh:
                     result["verdict"] = "verified"
+                    result["epistemic_status"] = "VERIFIED"
                     result["match_status"] = "confirmed"
                     result["matched_entity"] = matched_entity
                     result["entity_type"] = entity_type
@@ -124,6 +127,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
                     print(f"[{job_id}] Verdict: Verified (Match score: {best_score})")
                 else:
                     result["verdict"] = "name-number mismatch"
+                    result["epistemic_status"] = "NOT_VERIFIED"
                     result["match_status"] = "uncertain"
                     result["matched_entity"] = None
                     result["entity_type"] = entity_type
@@ -132,6 +136,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
                     print(f"[{job_id}] Verdict: Name-Number Mismatch. Registered to {matched_entity.get('name')}, claimed {claimed_name}.")
             else:
                 result["verdict"] = "verified"
+                result["epistemic_status"] = "VERIFIED"
                 result["match_status"] = "confirmed"
                 result["matched_entity"] = matched_entity
                 result["entity_type"] = entity_type
@@ -141,6 +146,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
             return result
         else:
             result["verdict"] = "not found"
+            result["epistemic_status"] = "NOT_VERIFIED"
             result["match_status"] = "absent"
             result["matched_entity"] = None
             result["entity_type"] = None
@@ -160,6 +166,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
                 
         if not candidates:
             result["verdict"] = "not found"
+            result["epistemic_status"] = "NOT_VERIFIED"
             result["match_status"] = "absent"
             result["entity_type"] = None
             result["is_conclusive_fraud"] = False
@@ -174,6 +181,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
             matched_entity = matched_tuple[1] if matched_tuple else None
             entity_type = matched_entity.get("type", "Unknown") if matched_entity else None
             result["verdict"] = "verified"
+            result["epistemic_status"] = "VERIFIED"
             result["match_status"] = "confirmed"
             result["matched_entity"] = matched_entity
             result["entity_type"] = entity_type
@@ -185,6 +193,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
             matched_entity = matched_tuple[1] if matched_tuple else None
             entity_type = matched_entity.get("type", "Unknown") if matched_entity else None
             result["verdict"] = "uncertain match"
+            result["epistemic_status"] = "NOT_VERIFIED"
             result["match_status"] = "uncertain"
             result["matched_entity"] = matched_entity
             result["entity_type"] = entity_type
@@ -198,6 +207,7 @@ def run_stage6_registry(sebi_analysis: dict, job_id: str):
             print(f"[{job_id}] Verdict: Uncertain match for '{claimed_name}'. Closest: '{best_match[0]}' ({best_match[1]}%).")
         else:
             result["verdict"] = "not found"
+            result["epistemic_status"] = "NOT_VERIFIED"
             result["match_status"] = "absent"
             result["matched_entity"] = None
             result["entity_type"] = None

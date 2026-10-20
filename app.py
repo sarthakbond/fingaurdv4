@@ -26,7 +26,7 @@ from src.stages.stage4_transcription import run_stage4_transcription
 from src.stages.stage5_llm import run_stage5_llm, warm_up_ollama
 from src.stages.stage6_registry import run_stage6_registry
 from src.stages.stage7_ocr import run_stage7_ocr, run_video_keyframes_ocr
-from src.stages.stage8_report import generate_sebi_scores_complaint
+from src.stages.stage8_report import generate_sebi_scores_complaint, compute_monotonic_composite_risk
 from src.stages.stage9_apk_domain import run_stage9_apk_domain, scan_domain
 from src.pdf_generator import generate_complaint_pdf
 from src.whatsapp_handler import (
@@ -153,8 +153,8 @@ def calculate_calibrated_verdict(
     elif registry_verdict == "name-number mismatch":
         # Active impersonation: a real registration number is being claimed under a different name.
         return "Warning: SEBI Violation / Scam"
-    elif registry_verdict in ("not found", "malformed number", "uncertain match"):
-        # Absent or unverifiable registration — suspicious but not conclusive without scam evidence.
+    elif registry_verdict in ("not found", "malformed number", "uncertain match", "unavailable"):
+        # Absent, unverifiable registration, or service downtime — suspicious but not conclusive without scam evidence.
         return "Suspicious: Review Recommended"
     elif composite_risk >= 0.35 or fallback_used or bool(degraded_modules):
         return "Suspicious: Review Recommended"
@@ -217,7 +217,10 @@ def build_evidence_breakdown(
     if registry_check:
         reg_verdict = registry_check.get("verdict", "not claimed")
         reg_explanation = registry_check.get("explanation", "")
-        if reg_verdict in ["malformed number", "name-number mismatch"]:
+        epistemic = registry_check.get("epistemic_status")
+        if epistemic == "UNAVAILABLE" or reg_verdict == "unavailable":
+            signals.append(f"SEBI registry verification UNAVAILABLE (zero-trust epistemic penalty applied): {reg_explanation}")
+        elif reg_verdict in ["malformed number", "name-number mismatch"]:
             signals.append(f"SEBI registry violation ({reg_verdict}): {reg_explanation}")
         elif reg_verdict == "uncertain match":
             signals.append(f"SEBI registry match inconclusive ({reg_verdict}): {reg_explanation}")
@@ -452,18 +455,26 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         if stage9.get("any_threat_detected"):
             is_scam = True
 
-        # Multi-modal risk calculation: Composite risk must reflect the highest detected threat
+        # Multi-modal risk calculation: Enforces Monotonic Risk Fusion Clamping (VERA Paper Section IV-C)
         base_llm_risk = float(llm.get("composite_risk_score", 0.0))
         media_threat = max(vision_score or 0.0, audio_score or 0.0, 1.0 if has_ai_watermark else 0.0)
 
+        composite_risk = compute_monotonic_composite_risk(
+            base_risk=base_llm_risk,
+            modality_scores={
+                "vision_score": vision_score,
+                "audio_score": audio_score,
+                "ai_watermark": 1.0 if has_ai_watermark else 0.0,
+                "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+            },
+            registry_check=registry
+        )
         if is_deepfake and is_scam:
-            composite_risk = max(base_llm_risk, media_threat, 0.95)
+            composite_risk = max(composite_risk, media_threat, 0.95)
         elif is_deepfake:
-            composite_risk = max(base_llm_risk, media_threat, 0.90)
+            composite_risk = max(composite_risk, media_threat, 0.90)
         elif is_scam:
-            composite_risk = max(base_llm_risk, 0.85)
-        else:
-            composite_risk = base_llm_risk
+            composite_risk = max(composite_risk, 0.85)
 
         fallback_used = bool(llm.get("fallback_used", False))
         
@@ -719,7 +730,16 @@ async def scan_text(req: TextScanRequest):
     is_scam = llm.get("is_scam_likely", False)
     if stage9.get("any_threat_detected"):
         is_scam = True
-    composite_risk = llm.get("composite_risk_score", 0.0)
+    base_llm_risk = float(llm.get("composite_risk_score", 0.0)) if llm else 0.0
+    composite_risk = compute_monotonic_composite_risk(
+        base_risk=base_llm_risk,
+        modality_scores={
+            "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+        },
+        registry_check=registry
+    )
+    if is_scam:
+        composite_risk = max(composite_risk, 0.85)
     fallback_used = llm.get("fallback_used", False)
     degraded_modules = ["stage5_llm"] if fallback_used else []
 
@@ -797,11 +817,26 @@ def scan_audio(file: UploadFile = File(...)):
 
         audio_thresh = get_threshold("audio_fake_threshold", 0.5)
 
-        is_deepfake = audio.get("max_score", 0.0) > audio_thresh
+        audio_score = audio.get("max_score", 0.0)
+        is_deepfake = audio_score > audio_thresh
         is_scam = llm.get("is_scam_likely", False)
         if stage9.get("any_threat_detected"):
             is_scam = True
-        composite_risk = llm.get("composite_risk_score", 0.0)
+        base_llm_risk = float(llm.get("composite_risk_score", 0.0)) if llm else 0.0
+        composite_risk = compute_monotonic_composite_risk(
+            base_risk=base_llm_risk,
+            modality_scores={
+                "audio_score": audio_score,
+                "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+            },
+            registry_check=registry
+        )
+        if is_deepfake and is_scam:
+            composite_risk = max(composite_risk, audio_score, 0.95)
+        elif is_deepfake:
+            composite_risk = max(composite_risk, audio_score, 0.90)
+        elif is_scam:
+            composite_risk = max(composite_risk, 0.85)
         fallback_used = llm.get("fallback_used", False)
         degraded_modules = []
         if fallback_used:
@@ -928,12 +963,27 @@ async def scan_image(file: UploadFile = File(...)):
 
         vision_thresh = get_vision_threshold()
 
-        is_deepfake = vision.get("max_score", 0.0) > vision_thresh
+        vision_score = vision.get("max_score", 0.0)
+        is_deepfake = vision_score > vision_thresh
         is_scam = llm.get("is_scam_likely", False) if llm else False
         # Elevate is_scam if Stage 9 found phishing domains
         if stage9.get("any_threat_detected"):
             is_scam = True
-        composite_risk = llm.get("composite_risk_score", 0.0) if llm else 0.0
+        base_llm_risk = float(llm.get("composite_risk_score", 0.0)) if llm else 0.0
+        composite_risk = compute_monotonic_composite_risk(
+            base_risk=base_llm_risk,
+            modality_scores={
+                "vision_score": vision_score,
+                "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+            },
+            registry_check=registry
+        )
+        if is_deepfake and is_scam:
+            composite_risk = max(composite_risk, vision_score, 0.95)
+        elif is_deepfake:
+            composite_risk = max(composite_risk, vision_score, 0.90)
+        elif is_scam:
+            composite_risk = max(composite_risk, 0.85)
         fallback_used = llm.get("fallback_used", False) if llm else False
         degraded_modules = ["stage5_llm"] if fallback_used else []
 

@@ -21,7 +21,7 @@ from src.stages.stage4_transcription import run_stage4_transcription
 from src.stages.stage5_llm import run_stage5_llm
 from src.stages.stage6_registry import run_stage6_registry
 from src.stages.stage7_ocr import run_stage7_ocr, run_video_keyframes_ocr
-from src.stages.stage8_report import generate_sebi_scores_complaint
+from src.stages.stage8_report import generate_sebi_scores_complaint, compute_monotonic_composite_risk
 from src.stages.stage9_apk_domain import run_stage9_apk_domain, scan_domain
 
 from twilio.twiml.messaging_response import MessagingResponse
@@ -168,7 +168,10 @@ def format_whatsapp_verdict_card(
     # SEBI Registry Check
     if registry_check:
         reg_v = registry_check.get("verdict", "not claimed").lower()
-        if reg_v == "verified":
+        epistemic = registry_check.get("epistemic_status")
+        if epistemic == "UNAVAILABLE" or reg_v == "unavailable":
+            lines.append("• *SEBI Registry:* ⚠️ Unreachable (Zero-Trust Epistemic Failsafe Active — manual check: scores.sebi.gov.in)")
+        elif reg_v == "verified":
             entity = registry_check.get("matched_entity", {}).get("name", "Registered Entity")
             lines.append(f"• *SEBI Registry:* ✅ Verified SEBI Registered ({entity})")
         elif reg_v == "name-number mismatch":
@@ -228,14 +231,15 @@ def format_whatsapp_verdict_card(
         lines.append("⛔ *Action Advised:*")
         lines.append("• Do NOT transfer money or share UPI IDs/OTPs.")
         lines.append("• Do NOT join private VIP Telegram/WhatsApp groups.")
-        lines.append("• Verify any advisor directly at scores.sebi.gov.in.")
+        lines.append("• Report fraud at cybercrime.gov.in (Helpline: 1930) & scores.sebi.gov.in.")
+        lines.append("• Electronic evidence certified under Section 63 BSA 2023.")
 
     # Link to Full Web Dossier / Complaint PDF
     base_url = public_url or os.getenv("PUBLIC_URL") or os.getenv("CLOUDFLARE_URL") or ""
     if base_url and job_id:
         clean_url = base_url.rstrip("/")
         lines.append("")
-        lines.append(f"📄 *Full Forensic Dossier & SEBI Complaint:*")
+        lines.append(f"📄 *Certified Evidentiary Dossier & SEBI SCORES Complaint:*")
         lines.append(f"{clean_url}/results?job_id={job_id}")
 
     return "\n".join(lines)
@@ -304,9 +308,17 @@ def analyze_whatsapp_text(
     if stage9.get("any_threat_detected") or (domain_result and domain_result.get("is_phishing")):
         is_scam = True
 
-    composite_risk = float(llm.get("composite_risk_score", 0.0))
-    if domain_result and domain_result.get("is_phishing"):
-        composite_risk = max(composite_risk, 0.95)
+    base_llm_risk = float(llm.get("composite_risk_score", 0.0))
+    phish_threat = 1.0 if (domain_result and domain_result.get("is_phishing")) or stage9.get("any_threat_detected") else 0.0
+    composite_risk = compute_monotonic_composite_risk(
+        base_risk=base_llm_risk,
+        modality_scores={
+            "domain_phishing": phish_threat,
+        },
+        registry_check=registry
+    )
+    if is_scam:
+        composite_risk = max(composite_risk, 0.85)
 
     fallback_used = llm.get("fallback_used", False)
     degraded_modules = ["stage5_llm"] if fallback_used else []
@@ -378,7 +390,20 @@ def analyze_whatsapp_audio(
         is_scam = True
 
     base_risk = float(llm.get("composite_risk_score", 0.0))
-    composite_risk = max(base_risk, audio_score if is_deepfake else 0.0)
+    composite_risk = compute_monotonic_composite_risk(
+        base_risk=base_risk,
+        modality_scores={
+            "audio_score": audio_score,
+            "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+        },
+        registry_check=registry
+    )
+    if is_deepfake and is_scam:
+        composite_risk = max(composite_risk, audio_score, 0.95)
+    elif is_deepfake:
+        composite_risk = max(composite_risk, audio_score, 0.90)
+    elif is_scam:
+        composite_risk = max(composite_risk, 0.85)
 
     fallback_used = llm.get("fallback_used", False)
     degraded_modules = []
@@ -455,7 +480,20 @@ def analyze_whatsapp_image(
         is_scam = True
 
     base_risk = float(llm.get("composite_risk_score", 0.0)) if llm else 0.0
-    composite_risk = max(base_risk, vision_score if is_deepfake else 0.0)
+    composite_risk = compute_monotonic_composite_risk(
+        base_risk=base_risk,
+        modality_scores={
+            "vision_score": vision_score,
+            "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+        },
+        registry_check=registry
+    )
+    if is_deepfake and is_scam:
+        composite_risk = max(composite_risk, vision_score, 0.95)
+    elif is_deepfake:
+        composite_risk = max(composite_risk, vision_score, 0.90)
+    elif is_scam:
+        composite_risk = max(composite_risk, 0.85)
 
     fallback_used = llm.get("fallback_used", False) if llm else False
     degraded_modules = ["stage5_llm"] if fallback_used else []
@@ -584,14 +622,22 @@ def analyze_whatsapp_video(
     base_risk = float(llm.get("composite_risk_score", 0.0))
     media_threat = max(vision_score, audio_score, 1.0 if has_ai_watermark else 0.0)
 
+    composite_risk = compute_monotonic_composite_risk(
+        base_risk=base_risk,
+        modality_scores={
+            "vision_score": vision_score,
+            "audio_score": audio_score,
+            "ai_watermark": 1.0 if has_ai_watermark else 0.0,
+            "domain_phishing": 1.0 if stage9.get("any_threat_detected") else 0.0,
+        },
+        registry_check=registry
+    )
     if is_deepfake and is_scam:
-        composite_risk = max(base_risk, media_threat, 0.95)
+        composite_risk = max(composite_risk, media_threat, 0.95)
     elif is_deepfake:
-        composite_risk = max(base_risk, media_threat, 0.90)
+        composite_risk = max(composite_risk, media_threat, 0.90)
     elif is_scam:
-        composite_risk = max(base_risk, 0.85)
-    else:
-        composite_risk = base_risk
+        composite_risk = max(composite_risk, 0.85)
 
     fallback_used = bool(llm.get("fallback_used", False))
     degraded_modules = []
