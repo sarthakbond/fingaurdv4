@@ -115,15 +115,18 @@ async function handleMessage(msg) {
 
     if (handledMessageIds.size > 2000) handledMessageIds.clear();
 
-    // ── GUARD 1: TIMESTAMP LOCK ──────────────────────────────────────────
-    // Ignore any historical or synced message from before the bot became ready
-    if (!msg.timestamp || msg.timestamp < BOT_READY_TIME) {
+    console.log(`\n[EVENT] from=${msg.from} | to=${msg.to} | fromMe=${msg.fromMe} | ts=${msg.timestamp} | body="${(msg.body || '').slice(0, 30)}"`);
+
+    // ── GUARD 1: TIMESTAMP LOCK (Ignore messages older than 2 mins before bot startup) ──
+    if (BOT_READY_TIME && msg.timestamp && (BOT_READY_TIME - msg.timestamp) > 120) {
+        console.log(`[FILTER] Skipped historical message (${BOT_READY_TIME - msg.timestamp}s old)`);
         return;
     }
 
     // ── GUARD 2: EMPTY MESSAGE FILTER ────────────────────────────────────
     const bodyText = (msg.body || '').trim();
     if (!bodyText && !msg.hasMedia) {
+        console.log('[FILTER] Skipped empty message');
         return;
     }
 
@@ -135,27 +138,31 @@ async function handleMessage(msg) {
         bodyText.includes('FinGuard Forensic') ||
         bodyText.includes('SEBI Registered:')
     )) {
+        console.log('[FILTER] Skipped bot output loop');
         return;
     }
 
     // ── GUARD 4: STRICT SELF-CHAT ONLY VERIFICATION ──────────────────────
-    // Discard any group chat
     if ((msg.from && msg.from.endsWith('@g.us')) || (msg.to && msg.to.endsWith('@g.us'))) {
+        console.log('[FILTER] Skipped group chat');
         return;
     }
 
-    const myUser = client.info && client.info.wid ? client.info.wid.user : '';
-    const myWid = client.info && client.info.wid ? client.info.wid._serialized : '';
+    const myUser = client.info && client.info.wid ? client.info.wid.user : '8432489640';
+    const myWid = client.info && client.info.wid ? client.info.wid._serialized : '918432489640@c.us';
+    const myLid = (client.info && client.info.lid && client.info.lid._serialized) ? client.info.lid._serialized : '265119942611173@lid';
 
     // Must be strictly sent to and from your own account (Message yourself)
-    const isToMe = (msg.to === myWid) || (msg.to && msg.to.includes(myUser));
-    const isFromMe = (msg.from === myWid) || (msg.from && msg.from.includes(myUser)) || msg.fromMe;
+    const isToMe = (msg.to === myWid) || (msg.to === myLid) || (msg.to && myUser && msg.to.includes(myUser)) || (msg.to === '265119942611173@lid');
+    const isFromMe = (msg.from === myWid) || (msg.from === myLid) || (msg.from && myUser && msg.from.includes(myUser)) || msg.fromMe;
 
     if (!isToMe || !isFromMe) {
+        console.log(`[FILTER] Skipped external chat: from=${msg.from} to=${msg.to}`);
         return;
     }
 
-    console.log(`\n[Private Note-to-Self Received] Body: "${bodyText.slice(0, 50)}" | Media: ${msg.hasMedia}`);
+    const replyChatId = msg.to || myWid;
+    console.log(`[ACCEPT] Private Note-to-Self received! Processing: "${bodyText.slice(0, 50)}"`);
 
     try {
         let payload = {
@@ -180,8 +187,8 @@ async function handleMessage(msg) {
         });
 
         if (response.data && response.data.reply && response.data.reply.trim()) {
-            console.log(`📤 Dispatching reply to ${myWid}...`);
-            await client.sendMessage(myWid, response.data.reply);
+            console.log(`📤 Dispatching reply to ${replyChatId}...`);
+            await client.sendMessage(replyChatId, response.data.reply);
             console.log('✅ Forensic verdict sent to your "Message yourself" chat!');
         }
     } catch (err) {
