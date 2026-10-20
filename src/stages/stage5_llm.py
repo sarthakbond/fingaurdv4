@@ -414,6 +414,11 @@ PROMOTIONAL_CTA_PATTERNS = [
     r"(?i)\b(?:install|download)\s+(?:anydesk|teamviewer)\s+(?:so|for)\s+(?:we|us|our\s+team)\b",
     r"(?i)\bpremium\s+(?:group|calls?|tips?)\s+join\s+karo\b",
     r"(?i)\b(?:dm|inbox|telegram)\s+(?:me\s+)?for\s+(?:vip|entry|signals|calls)\b",
+    r"(?i)\b(?:check|click|tap|see|visit)\s+(?:the\s+)?link\s+in\s+(?:my\s+|the\s+)?bio\b",
+    r"(?i)\blink\s+in\s+(?:my\s+|the\s+)?bio\b",
+    r"(?i)\b(?:my\s+)?inner\s*circle\s+(?:is\s+)?(?:heavily\s+)?buying\b",
+    r"(?i)\b(?:can'?t|cannot)\s+give\s+(?:direct\s+)?(?:advice|recommendations?)\s+here[,\s]+but\b",
+    r"(?i)\bnot\s+financial\s+advice[,\s]+but\b",
 ]
 
 def find_enclosing_clause(text: str, start_pos: int, end_pos: int) -> str:
@@ -662,9 +667,12 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
                 quotes["urgency_scarcity_language"].append(match_str)
                 scores["urgency_scarcity"] = max(scores["urgency_scarcity"], 0.85)
 
-    # 7. Check paywall push
+    # 7. Check paywall push & private channel funnels
     paywall_patterns = [
-        r"(?i)\b(?:join\s*(?:vip|premium|paid|free)?\s*(?:telegram|whatsapp|group|channel)|dm\s*for\s*(?:vip|entry|tips)|\[MASKED_PRIVATE_CHANNEL_LINK_DPDP\]|t\.me/\S+|chat\.whatsapp\.com/\S+)\b"
+        r"(?i)\b(?:join\s*(?:vip|premium|paid|free)?\s*(?:telegram|whatsapp|group|channel)|dm\s*for\s*(?:vip|entry|tips)|\[MASKED_PRIVATE_CHANNEL_LINK_DPDP\]|t\.me/\S+|chat\.whatsapp\.com/\S+)\b",
+        r"(?i)\b(?:check|click|tap|see|visit)\s+(?:the\s+)?link\s+in\s+(?:my\s+|the\s+)?bio\b",
+        r"(?i)\blink\s+in\s+(?:my\s+|the\s+)?bio\b",
+        r"(?i)\b(?:dm|message)\s+(?:me|us)\s+(?:for|to\s+get|for\s+link|for\s+access|for\s+stock)\b",
     ]
     for pat in paywall_patterns:
         for m in re.finditer(pat, text):
@@ -674,9 +682,9 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
                 awareness_examples.append(match_str)
             else:
                 quotes["paywall_push"].append(match_str)
-                scores["paywall_push"] = max(scores["paywall_push"], 0.90)
+                scores["paywall_push"] = max(scores["paywall_push"], 0.95)
 
-    # 8. Check implied returns & slang
+    # 8. Check implied returns, insider claims & slang
     active_slang = []
     if slang_found:
         for s in slang_found:
@@ -693,24 +701,39 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
                 scores["implied_returns"] = max(scores["implied_returns"], 0.85)
                 quotes["implied_returns"].append(f"[Hinglish Slang]: '{s}'")
 
-    for m in re.finditer(r"(?i)\b(?:rocket\s*calls?|pakka\s*jackpot|zero-loss|multibagger|nifty\s*blast|10x|5x)\b", text):
-        match_str = m.group(0)
-        clause = find_enclosing_clause(text, m.start(), m.end())
-        if is_clause_prohibitive_or_attributed(clause) or bool(awareness_markers):
-            awareness_examples.append(match_str)
-        else:
-            quotes["implied_returns"].append(match_str)
-            scores["implied_returns"] = max(scores["implied_returns"], 0.80)
+    implied_patterns = [
+        r"(?i)\b(?:my\s+)?inner\s*circle\s+(?:is\s+)?(?:heavily\s+)?(?:buying|accumulating|getting\s+in|loading\s+up)\b",
+        r"(?i)\binner\s*circle\b",
+        r"(?i)\bheavily\s+buying\s+(?:this\s+)?(?:stock|shares?|token|coin)\b",
+        r"(?i)\bbig\s+things\s+are\s+coming\b",
+        r"(?i)\b(?:massive|huge)\s+(?:move|rally|breakout)\s+(?:is\s+)?coming\b",
+        r"(?i)\b(?:rocket\s*calls?|pakka\s*jackpot|zero-loss|multibagger|nifty\s*blast|10x|5x)\b",
+    ]
+    for pat in implied_patterns:
+        for m in re.finditer(pat, text):
+            match_str = m.group(0)
+            clause = find_enclosing_clause(text, m.start(), m.end())
+            if is_clause_prohibitive_or_attributed(clause) or bool(awareness_markers):
+                awareness_examples.append(match_str)
+            else:
+                quotes["implied_returns"].append(match_str)
+                scores["implied_returns"] = max(scores["implied_returns"], 0.90)
 
-    # 9. Check credentials
-    for m in re.finditer(r"(?i)\b(?:sebi\s*(?:registered|approved|certified|advisor)|ina[0-9]{8,14}|inh[0-9]{8,14})\b", text):
-        match_str = m.group(0)
-        clause = find_enclosing_clause(text, m.start(), m.end())
-        if is_clause_prohibitive_or_attributed(clause):
-            awareness_examples.append(match_str)
-        else:
-            quotes["credential_misrepresentation"].append(match_str)
-            scores["credential_misrep"] = max(scores["credential_misrep"], 0.70)
+    # 9. Check credentials and regulatory evasion disclaimers
+    credential_evasion_patterns = [
+        r"(?i)\b(?:can'?t|cannot)\s+give\s+(?:direct\s+)?(?:advice|recommendations?)\s+here[,\s]+but\b",
+        r"(?i)\bnot\s+financial\s+advice[,\s]+but\b",
+        r"(?i)\b(?:sebi\s*(?:registered|approved|certified|advisor)|ina[0-9]{8,14}|inh[0-9]{8,14})\b",
+    ]
+    for pat in credential_evasion_patterns:
+        for m in re.finditer(pat, text):
+            match_str = m.group(0)
+            clause = find_enclosing_clause(text, m.start(), m.end())
+            if is_clause_prohibitive_or_attributed(clause):
+                awareness_examples.append(match_str)
+            else:
+                quotes["credential_misrepresentation"].append(match_str)
+                scores["credential_misrep"] = max(scores["credential_misrep"], 0.85)
 
     claimed_advisor = None
     claimed_number = None
@@ -788,9 +811,10 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
             max_signal = max(scores.values()) if scores else 0.0
             composite = max(composite, scam_thresh, round(max_signal * 0.85, 4))
 
-        reasoning_parts = []
         if quotes["specific_return_promises"]:
             reasoning_parts.append("Guaranteed return promises detected")
+        if quotes["implied_returns"]:
+            reasoning_parts.append("Implied outsized returns and insider touting detected")
         if active_slang:
             reasoning_parts.append(f"Coded Hinglish fraud slang detected ({', '.join(active_slang)})")
         if quotes["paywall_push"]:
@@ -799,6 +823,8 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
             reasoning_parts.append("Suspicious fee demand / money transfer request detected")
         if quotes["credential_or_otp_requests"]:
             reasoning_parts.append("Sensitive credential / OTP request detected")
+        if quotes["credential_misrepresentation"]:
+            reasoning_parts.append("Deceptive regulatory evasion disclaimers detected")
         if quotes["unsupported_regulatory_claims"]:
             reasoning_parts.append("Unsupported regulatory claim or authority impersonation detected")
         if quotes["urgency_scarcity_language"]:

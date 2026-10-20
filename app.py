@@ -401,14 +401,37 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         else:
             audio_score = 0.0 if audio.get("status") != "error" else None
 
-        has_vision_fake = (vision_score is not None and vision_score > vision_thresh) or has_ai_watermark
+        # Conclusive AI Watermark escalation: A detected Gemini/Veo watermark proves synthetic AI generation
+        if has_ai_watermark:
+            vision_score = max(vision_score or 0.0, 0.999)
+            has_vision_fake = True
+            is_deepfake = True
+        else:
+            has_vision_fake = (vision_score is not None and vision_score > vision_thresh)
+            has_audio_fake = (audio_score is not None and audio_score > audio_thresh)
+            is_deepfake = bool(has_vision_fake or has_audio_fake)
+
         has_audio_fake = (audio_score is not None and audio_score > audio_thresh) or has_ai_watermark
-        is_deepfake = bool(has_vision_fake or has_audio_fake or has_ai_watermark)
+        if has_vision_fake or has_audio_fake or has_ai_watermark:
+            is_deepfake = True
 
         is_scam = bool(llm.get("is_scam_likely", False))
         if stage9.get("any_threat_detected"):
             is_scam = True
-        composite_risk = float(llm.get("composite_risk_score", 0.0))
+
+        # Multi-modal risk calculation: Composite risk must reflect the highest detected threat
+        base_llm_risk = float(llm.get("composite_risk_score", 0.0))
+        media_threat = max(vision_score or 0.0, audio_score or 0.0, 1.0 if has_ai_watermark else 0.0)
+
+        if is_deepfake and is_scam:
+            composite_risk = max(base_llm_risk, media_threat, 0.95)
+        elif is_deepfake:
+            composite_risk = max(base_llm_risk, media_threat, 0.90)
+        elif is_scam:
+            composite_risk = max(base_llm_risk, 0.85)
+        else:
+            composite_risk = base_llm_risk
+
         fallback_used = bool(llm.get("fallback_used", False))
         
         verdict = calculate_calibrated_verdict(

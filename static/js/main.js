@@ -904,9 +904,9 @@ function renderReport(vm) {
         </div>
 
         <!-- Gauge Box -->
-        <div class="fg-gauge-box" aria-label="Backend-reported overall risk score">
+        <div class="fg-gauge-box" aria-label="Overall risk threat score">
           <div class="fg-gauge-score">${peakScoreDisplay}</div>
-          <div class="fg-gauge-label">Backend risk score</div>
+          <div class="fg-gauge-label">Overall risk score</div>
         </div>
       </div>
 
