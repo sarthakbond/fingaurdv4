@@ -22,7 +22,7 @@
 <div class="fg-top-stripe">
   <div class="fg-container fg-top-stripe__inner">
     <span>Institutional Security Verification & Fraud Screening · Version 4.0</span>
-    <span>Decision Support System · Not Official Legal Advice</span>
+    <span class="fg-top-stripe__db"><span class="fg-pulse-dot" aria-hidden="true"></span> <b id="top-db-count">4,709</b> Verified SEBI Entities Synchronized</span>
   </div>
 </div>
 
@@ -41,6 +41,7 @@
 
     <nav class="fg-nav" id="main-nav" aria-label="Primary navigation">
       <button class="fg-nav__link" type="button" data-route="/">Home</button>
+      <button class="fg-nav__link" type="button" data-route="/registry">SEBI Registry</button>
       <button class="fg-nav__link" type="button" data-route="/how-it-works">How It Works</button>
       <button class="fg-nav__link" type="button" data-route="/features">Features</button>
       <button class="fg-nav__link" type="button" data-route="/technology">Technology</button>
@@ -251,6 +252,81 @@
     </div>
   </section>
 
+  <!-- ══════════════════════════════════════════════════════════════════════
+       OFFICIAL SEBI REGISTRY LIVE DATABASE & INSTANT SEARCH
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="fg-section fg-registry-showcase" id="registry-directory-section">
+    <div class="fg-container">
+      <div class="fg-registry-hero-card">
+        <div class="fg-registry-hero-header">
+          <div class="fg-registry-hero-title-wrap">
+            <div class="fg-registry-live-badge">
+              <span class="fg-pulse-dot" aria-hidden="true"></span>
+              SEBI Official Directory Synchronized
+            </div>
+            <h2 class="fg-registry-hero-title">Official SEBI Intermediary Database</h2>
+            <p class="fg-registry-hero-desc">
+              FinGuard maintains an indexed offline database of <b id="stat-total-records">4,709</b> verified market intermediaries and individuals directly synchronized from SEBI (<a href="https://www.sebi.gov.in" target="_blank" rel="noopener noreferrer" class="fg-link">sebi.gov.in</a>). Search any influencer, company, or individual adviser below for instant verification.
+            </p>
+          </div>
+
+          <!-- Live Metric Stats Breakdown -->
+          <div class="fg-registry-stats-grid" id="registry-stats-grid">
+            <div class="fg-stat-box" data-query="Research Analyst" role="button" tabindex="0" title="Click to filter Research Analysts">
+              <div class="fg-stat-box__val" id="stat-ra">2,305</div>
+              <div class="fg-stat-box__lbl">Research Analysts (RA)</div>
+            </div>
+            <div class="fg-stat-box" data-query="Investment Adviser" role="button" tabindex="0" title="Click to filter Investment Advisers">
+              <div class="fg-stat-box__val" id="stat-ria">1,067</div>
+              <div class="fg-stat-box__lbl">Investment Advisers (RIA)</div>
+            </div>
+            <div class="fg-stat-box" data-query="Stock Broker" role="button" tabindex="0" title="Click to filter Stock Brokers">
+              <div class="fg-stat-box__val" id="stat-brokers">718</div>
+              <div class="fg-stat-box__lbl">Stock Brokers</div>
+            </div>
+            <div class="fg-stat-box" data-query="Portfolio Manager" role="button" tabindex="0" title="Click to filter Portfolio Managers">
+              <div class="fg-stat-box__val" id="stat-pms">540</div>
+              <div class="fg-stat-box__lbl">Portfolio Managers (PMS)</div>
+            </div>
+            <div class="fg-stat-box" data-query="Mutual Fund" role="button" tabindex="0" title="Click to filter Mutual Funds">
+              <div class="fg-stat-box__val" id="stat-mf">68</div>
+              <div class="fg-stat-box__lbl">Mutual Funds / AMCs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instant Verification Search Box -->
+        <div class="fg-registry-search-wrap">
+          <div class="fg-registry-search-bar">
+            <span class="fg-search-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" id="registry-search-input" class="fg-registry-search-input" placeholder="Search by Adviser Name, Contact Person, Broker, or SEBI ID (e.g. Mayank, INA000016171, Zerodha, Angel One, Kukreja)..." autocomplete="off" aria-label="Search SEBI intermediary database">
+            <button class="fg-btn fg-btn--sm" id="registry-search-btn" type="button">Verify Now</button>
+          </div>
+
+          <div class="fg-registry-search-hint">
+            <span class="fg-registry-search-quick">Quick queries: 
+              <button type="button" class="fg-quick-search-tag" data-query="Zerodha">Zerodha</button> 
+              <button type="button" class="fg-quick-search-tag" data-query="Mayank">Mayank</button> 
+              <button type="button" class="fg-quick-search-tag" data-query="INA000016171">INA000016171</button> 
+              <button type="button" class="fg-quick-search-tag" data-query="Angel One">Angel One</button> 
+              <button type="button" class="fg-quick-search-tag" data-query="Groww">Groww</button>
+              <button type="button" class="fg-quick-search-tag" data-query="Motilal">Motilal</button>
+            </span>
+            <span id="registry-search-status" class="fg-registry-search-status"></span>
+          </div>
+
+          <!-- Search Results Container -->
+          <div class="fg-registry-results" id="registry-results-container" hidden></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Data Privacy & Handling Section -->
   <section class="fg-section fg-section--alt">
     <div class="fg-container">
@@ -377,6 +453,7 @@
         <article class="fg-card"><span class="fg-card__tag">02 / Backend-confirmed</span><h3 class="fg-card__title">No invented progress or fields</h3><p class="fg-card__text">The interface displays reported stages and response fields. When a value is missing, it is shown as unavailable rather than estimated.</p></article>
         <article class="fg-card"><span class="fg-card__tag">03 / Know the limits</span><h3 class="fg-card__title">A screening tool, not a verdict on truth</h3><p class="fg-card__text">Compression, poor lighting, background noise, incomplete context, and model limitations can affect results. Independently verify important claims and credentials.</p></article>
         <article class="fg-card"><span class="fg-card__tag">04 / APK static analysis</span><h3 class="fg-card__title">Apps are not run</h3><p class="fg-card__text">APK checks inspect package information and permissions without executing the app.</p></article>
+        <article class="fg-card"><span class="fg-card__tag">05 / SEBI Registry Database</span><h3 class="fg-card__title">4,709 Synchronized Records</h3><p class="fg-card__text">Cross-references claimed adviser names, contact persons, and registration numbers against our synchronized database of 4,709 verified SEBI intermediaries.</p></article>
       </div>
     </div>
   </section>

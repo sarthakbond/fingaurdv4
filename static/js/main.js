@@ -10,7 +10,7 @@
    ========================================================================= */
 
 import { $, $$, esc, fmtBytes, fmtClock, fmtScore, fmtStamp, reducedMotion } from './dom.js';
-import { LIMITS, getJobComplaint, downloadComplaintPdf, health, startRun, validateFile, validateText, validateUrl } from './api.js';
+import { LIMITS, getJobComplaint, downloadComplaintPdf, health, registryStatus, registrySearch, startRun, validateFile, validateText, validateUrl } from './api.js';
 import { planFor } from './stages.js';
 import { toViewModel } from './model.js';
 
@@ -35,7 +35,7 @@ const state = {
 
 function getInitialRoute() {
   const path = window.location.pathname;
-  const validRoutes = ['/', '/how-it-works', '/features', '/technology', '/analyze', '/analysis', '/results'];
+  const validRoutes = ['/', '/registry', '/how-it-works', '/features', '/technology', '/analyze', '/analysis', '/results'];
   return validRoutes.includes(path) ? path : '/';
 }
 
@@ -78,6 +78,11 @@ const STAGE_ACTIVITY = {
 /* ── Routing & Navigation ────────────────────────────────────────────────── */
 
 function showRoute(route) {
+  let isRegistryNav = false;
+  if (route === '/registry') {
+    isRegistryNav = true;
+    route = '/';
+  }
   if (route === '/analysis' && !state.run && state.route !== '/analyze') {
     route = '/analyze';
   }
@@ -88,8 +93,8 @@ function showRoute(route) {
   }
 
   state.route = route;
-  if (window.location.pathname !== route) {
-    history.pushState({}, '', route);
+  if (window.location.pathname !== (isRegistryNav ? '/registry' : route)) {
+    history.pushState({}, '', isRegistryNav ? '/registry' : route);
   }
 
   // View visibility
@@ -103,7 +108,11 @@ function showRoute(route) {
 
   // Highlight active nav links
   $$('.fg-nav__link').forEach((link) => {
-    link.classList.toggle('fg-nav__link--active', link.dataset.route === route);
+    if (isRegistryNav) {
+      link.classList.toggle('fg-nav__link--active', link.dataset.route === '/registry');
+    } else {
+      link.classList.toggle('fg-nav__link--active', link.dataset.route === route);
+    }
   });
 
   // Close mobile drawer
@@ -117,7 +126,16 @@ function showRoute(route) {
     renderReport(state.viewModel);
   }
 
-  window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+  if (isRegistryNav) {
+    setTimeout(() => {
+      const regSection = $('#registry-directory-section');
+      if (regSection) {
+        regSection.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' });
+      }
+    }, 60);
+  } else {
+    window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+  }
 }
 
 function initMotionEffects() {
@@ -1256,6 +1274,197 @@ function renderReport(vm) {
   });
 }
 
+/* ── SEBI Registry Showcase & Instant Live Search ───────────────────────── */
+
+function initRegistryShowcase() {
+  const topDbCount = $('#top-db-count');
+  const statTotal = $('#stat-total-records');
+  const statRa = $('#stat-ra');
+  const statRia = $('#stat-ria');
+  const statBrokers = $('#stat-brokers');
+  const statPms = $('#stat-pms');
+  const statMf = $('#stat-mf');
+
+  // Load live statistics from backend
+  registryStatus()
+    .then((data) => {
+      if (!data) return;
+      const total = data.total_records || 4709;
+      if (topDbCount) topDbCount.textContent = total.toLocaleString();
+      if (statTotal) statTotal.textContent = total.toLocaleString();
+
+      const b = data.registry_breakdown || {};
+      const raCount = (b['Research Analyst'] || 0) + (b['Research Analyst / PMS'] || 0);
+      const riaCount = (b['Investment Adviser'] || 0) + (b['Investment Advisor'] || 0) + (b['Investment Advisor / PMS'] || 0) + (b['Investment Advisor / Stock Broker'] || 0);
+      const brokerCount = (b['Stock Broker'] || 0) + (b['Stock Broker / RA'] || 0) + (b['Stock Broker / RA / RIA'] || 0) + (b['Stock Broker / RIA'] || 0) + (b['Stock Broker / Wealth Partner'] || 0) + (b['Stock Broker / Debt Broker'] || 0) + (b['Stock Broker / Financial Services'] || 0) + (b['Stock Broker / PMS / RIA'] || 0);
+      const pmsCount = (b['Portfolio Manager'] || 0) + (b['Portfolio Manager / Investment Advisor'] || 0) + (b['Portfolio Manager / Mutual Fund'] || 0);
+      const mfCount = (b['Mutual Fund'] || 0) + (b['Mutual Fund Asset Management'] || 0);
+
+      if (statRa && raCount) statRa.textContent = raCount.toLocaleString();
+      if (statRia && riaCount) statRia.textContent = riaCount.toLocaleString();
+      if (statBrokers && brokerCount) statBrokers.textContent = brokerCount.toLocaleString();
+      if (statPms && pmsCount) statPms.textContent = pmsCount.toLocaleString();
+      if (statMf && mfCount) statMf.textContent = mfCount.toLocaleString();
+    })
+    .catch((err) => {
+      console.warn('Could not load live registry status:', err);
+    });
+
+  // Search input & button
+  const searchInput = $('#registry-search-input');
+  const searchBtn = $('#registry-search-btn');
+  const resultsContainer = $('#registry-results-container');
+  const searchStatus = $('#registry-search-status');
+
+  if (!searchInput || !resultsContainer) return;
+
+  let debounceTimer = null;
+
+  async function performSearch(query) {
+    const q = (query || '').trim();
+    if (q.length < 2) {
+      resultsContainer.hidden = true;
+      resultsContainer.innerHTML = '';
+      if (searchStatus) {
+        searchStatus.textContent = '';
+        searchStatus.className = 'fg-registry-search-status';
+      }
+      return;
+    }
+
+    if (searchStatus) {
+      searchStatus.textContent = 'Searching official SEBI database...';
+      searchStatus.className = 'fg-registry-search-status fg-registry-search-status--loading';
+    }
+
+    try {
+      const data = await registrySearch(q);
+      const results = data.results || [];
+      const total = data.total_matches || results.length;
+
+      if (results.length === 0) {
+        if (searchStatus) {
+          searchStatus.textContent = `No verified SEBI registration found matching "${q}".`;
+          searchStatus.className = 'fg-registry-search-status fg-registry-search-status--warn';
+        }
+        resultsContainer.hidden = false;
+        resultsContainer.innerHTML = `
+          <div class="fg-registry-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <b>No matching SEBI registration found for "${esc(q)}"</b>
+              <p>This entity or person is not found in the verified SEBI registry. If they are offering investment advice or soliciting funds, exercise extreme caution.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (searchStatus) {
+        searchStatus.textContent = `Found ${total.toLocaleString()} verified match${total === 1 ? '' : 'es'}`;
+        searchStatus.className = 'fg-registry-search-status fg-registry-search-status--ok';
+      }
+
+      resultsContainer.hidden = false;
+      resultsContainer.innerHTML = `
+        <div class="fg-registry-results-grid">
+          ${results.map((rec) => {
+            const cat = (rec.type || '').toLowerCase();
+            const badgeType = cat.includes('adviser') || cat.includes('advisor') ? 'ria' : cat.includes('analyst') ? 'ra' : cat.includes('broker') ? 'broker' : 'default';
+            return `
+              <div class="fg-reg-card">
+                <div class="fg-reg-card__top">
+                  <span class="fg-reg-card__badge fg-reg-card__badge--${badgeType}">
+                    ${esc(rec.type || 'Intermediary')}
+                  </span>
+                  <span class="fg-reg-card__status">
+                    <span class="fg-pulse-dot" aria-hidden="true"></span> ${esc(rec.status || 'Active')}
+                  </span>
+                </div>
+                <h4 class="fg-reg-card__name">${esc(rec.name)}</h4>
+                <div class="fg-reg-card__regno">
+                  <code>${esc(rec.registration_number)}</code>
+                  <button type="button" class="fg-copy-reg-btn" data-reg="${esc(rec.registration_number)}" title="Copy Registration Number">Copy</button>
+                </div>
+                ${rec.contact_person ? `
+                  <div class="fg-reg-card__contact">
+                    <span class="fg-reg-card__contact-label">Registered Representative:</span>
+                    <b class="fg-reg-card__person">👤 ${esc(rec.contact_person)}</b>
+                  </div>
+                ` : ''}
+                <div class="fg-reg-card__footer">
+                  <span class="fg-reg-card__source">SEBI Official Directory</span>
+                  <a href="https://www.sebi.gov.in/sebiweb/other/OtherAction.do?doRecognisedFpi=yes" target="_blank" rel="noopener noreferrer" class="fg-reg-card__link">Verify on SEBI ↗</a>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      // Copy buttons
+      $$('.fg-copy-reg-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const text = btn.dataset.reg;
+          if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(text).then(() => {
+              const old = btn.textContent;
+              btn.textContent = 'Copied!';
+              setTimeout(() => { btn.textContent = old; }, 1500);
+            });
+          }
+        });
+      });
+    } catch (err) {
+      if (searchStatus) {
+        searchStatus.textContent = 'Verification search error. Please retry.';
+        searchStatus.className = 'fg-registry-search-status fg-registry-search-status--warn';
+      }
+    }
+  }
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      performSearch(searchInput.value);
+    }, 250);
+  });
+
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      performSearch(searchInput.value);
+    });
+  }
+
+  // Quick query pill buttons
+  $$('.fg-quick-search-tag').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.query;
+      searchInput.value = q;
+      performSearch(q);
+    });
+  });
+
+  // Stat boxes click to filter
+  $$('.fg-stat-box').forEach((box) => {
+    box.addEventListener('click', () => {
+      const q = box.dataset.query;
+      if (q) {
+        searchInput.value = q;
+        performSearch(q);
+        searchInput.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'nearest' });
+      }
+    });
+    box.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        box.click();
+      }
+    });
+  });
+}
+
 /* ── Application Initialisation ──────────────────────────────────────────── */
 
 function init() {
@@ -1263,6 +1472,7 @@ function init() {
   bindNavigation();
   monitorHealth();
   setInterval(monitorHealth, 30000);
+  initRegistryShowcase();
   window.addEventListener('pagehide', () => {
     state.run?.cancel();
     releasePreviewUrl();
