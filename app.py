@@ -1179,6 +1179,18 @@ async def whatsapp_webhook_status():
         "instructions": "Configure Twilio WhatsApp Sandbox incoming webhook to POST to this URL."
     }
 
+def twiml_xml_response(twiml_content: str) -> Response:
+    """Returns standard TwiML text/xml with no-transform so Cloudflare does not gzip compress it."""
+    return Response(
+        content=twiml_content,
+        media_type="text/xml",
+        headers={
+            "Content-Type": "text/xml",
+            "Cache-Control": "no-transform",
+            "Pragma": "no-cache",
+        }
+    )
+
 @app.post("/api/whatsapp/webhook")
 @app.post("/api/whatsapp/webhook/")
 @app.post("/")
@@ -1215,10 +1227,10 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
 
         if is_greeting or not body_clean:
             print(f"[WhatsApp Webhook] Returning official TwiML welcome guide")
-            return Response(content=build_twiml_response(get_welcome_guide()), media_type="application/xml")
+            return twiml_xml_response(build_twiml_response(get_welcome_guide()))
         elif is_status:
             print(f"[WhatsApp Webhook] Returning official TwiML status guide")
-            return Response(content=build_twiml_response(get_status_guide()), media_type="application/xml")
+            return twiml_xml_response(build_twiml_response(get_status_guide()))
         else:
             print(f"[WhatsApp Webhook] Analyzing text message: {body[:80]}...")
             job_id = f"wa-text-{uuid.uuid4().hex[:8]}"
@@ -1229,7 +1241,7 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
                 build_evidence_fn=build_evidence_breakdown,
                 public_url=public_url
             )
-            return Response(content=build_twiml_response(alert), media_type="application/xml")
+            return twiml_xml_response(build_twiml_response(alert))
 
     # Handle Media attachments (Video, Audio, Image, APK)
     job_id = f"wa-media-{uuid.uuid4().hex[:8]}"
@@ -1288,14 +1300,14 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
             "Our GPU workstation is analyzing face frames, sensor noise residuals, voice cloning, and SEBI compliance.\n\n"
             "⏳ _Please hold on, your full forensic report will be delivered directly here shortly!_"
         )
-        return Response(content=build_twiml_response(ack_msg), media_type="application/xml")
+        return twiml_xml_response(build_twiml_response(ack_msg))
 
     # Otherwise process synchronously:
     try:
         ok = download_twilio_media(media_url, temp_file_path)
         if not ok:
             err_msg = "⚠️ *FinGuard Error:* Failed to download the attached media from WhatsApp. Please try sending again."
-            return Response(content=build_twiml_response(err_msg), media_type="application/xml")
+            return twiml_xml_response(build_twiml_response(err_msg))
 
         if is_apk:
             alert = analyze_whatsapp_apk(temp_file_path, job_id, filename="uploaded.apk", public_url=public_url)
@@ -1308,11 +1320,11 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
         else:
             alert = "⚠️ *FinGuard Notice:* Unsupported file type received. Please send text, voice notes, videos, screenshots, or APKs."
 
-        return Response(content=build_twiml_response(alert), media_type="application/xml")
+        return twiml_xml_response(build_twiml_response(alert))
     except Exception as e:
         print(f"[WhatsApp] Error during media scan: {e}")
         err_msg = f"⚠️ *FinGuard Forensic Error:* {str(e)}"
-        return Response(content=build_twiml_response(err_msg), media_type="application/xml")
+        return twiml_xml_response(build_twiml_response(err_msg))
     finally:
         if not is_video and os.path.exists(temp_job_dir):
             shutil.rmtree(temp_job_dir, ignore_errors=True)
