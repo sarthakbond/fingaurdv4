@@ -172,25 +172,50 @@ async function handleMessage(msg) {
         };
 
         if (msg.hasMedia) {
-            console.log('📦 Media detected! Sending immediate processing ACK to chat...');
-            try {
-                await client.sendMessage(replyChatId, "🔍 *FinGuard Forensic Engine*: Media received!\n\n⏳ _Analyzing facial frames, synthetic audio residuals, OCR text, and SEBI advisory compliance on GPU workstation... Please hold on!_");
-            } catch (ackErr) {
-                console.error('Warning sending ACK:', ackErr.message);
-            }
-
-            console.log('⏳ Downloading media from WhatsApp (with retry)...');
+            console.log('📦 Media detected! Downloading media from WhatsApp...');
             let media = null;
-            for (let attempt = 1; attempt <= 6; attempt++) {
+            for (let attempt = 1; attempt <= 8; attempt++) {
                 try {
-                    await new Promise(r => setTimeout(r, 2500));
+                    await new Promise(r => setTimeout(r, 2000));
                     media = await msg.downloadMedia();
                     if (media && media.data) {
-                        console.log(`✅ Media successfully retrieved on attempt ${attempt}! Size: ${media.data.length} chars`);
+                        console.log(`✅ Media successfully retrieved on attempt ${attempt}! Size: ${media.data.length} chars (${media.mimetype})`);
                         break;
                     }
                 } catch (dlErr) {
-                    console.log(`⚠️ Media download attempt ${attempt} pending: ${dlErr.message || dlErr}...`);
+                    console.log(`⚠️ Media download attempt ${attempt} error:`, dlErr.message || dlErr);
+                }
+            }
+
+            if (!media || !media.data) {
+                // Try fallback via renderableUrl or DOM
+                try {
+                    console.log('🔄 Attempting fallback media retrieval from WhatsApp Web store...');
+                    const fb = await client.pupPage.evaluate(async (msgId) => {
+                        const m = window.require('WAWebCollections')?.Msg?.get(msgId);
+                        if (!m) return null;
+                        const url = m.mediaData?.renderableUrl || m.mediaData?.preview?._base64;
+                        if (url && url.startsWith('blob:')) {
+                            const res = await fetch(url);
+                            const blob = await res.blob();
+                            return new Promise((resolve) => {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    const b64 = reader.result.split(',')[1];
+                                    resolve({ data: b64, mimetype: m.mimetype || 'video/mp4', filename: m.filename || 'media.mp4' });
+                                };
+                                reader.readAsDataURL(blob);
+                            });
+                        }
+                        return null;
+                    }, msg.id._serialized);
+
+                    if (fb && fb.data) {
+                        media = fb;
+                        console.log('✅ Fallback retrieved media successfully!');
+                    }
+                } catch (fbError) {
+                    console.log('Fallback retrieval error:', fbError.message);
                 }
             }
 
@@ -198,10 +223,10 @@ async function handleMessage(msg) {
                 payload.media_base64 = media.data;
                 payload.media_mimetype = media.mimetype;
                 payload.filename = media.filename || 'attachment';
-                console.log(`📦 Media downloaded successfully: ${media.mimetype}`);
+                console.log(`📦 Media ready for processing: ${media.mimetype}`);
             } else {
-                console.error('❌ Could not retrieve media data after retries.');
-                await client.sendMessage(replyChatId, "⚠️ *FinGuard Notice:* Could not retrieve the attached media from WhatsApp. Please ensure the video has fully finished uploading from your phone and forward it again.");
+                console.error('❌ Could not retrieve media data after all attempts.');
+                await client.sendMessage(replyChatId, "⚠️ *FinGuard Notice:* Could not download media from WhatsApp. Please ensure the video has finished downloading in WhatsApp and send it again.");
                 return;
             }
         }
