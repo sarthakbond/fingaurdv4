@@ -171,13 +171,34 @@ async function handleMessage(msg) {
         };
 
         if (msg.hasMedia) {
-            console.log('⏳ Downloading media from WhatsApp...');
-            const media = await msg.downloadMedia();
+            console.log('📦 Media detected! Sending immediate processing ACK to chat...');
+            try {
+                await client.sendMessage(replyChatId, "🔍 *FinGuard Forensic Engine*: Media received!\n\n⏳ _Analyzing facial frames, synthetic audio residuals, OCR text, and SEBI advisory compliance on GPU workstation... Please hold on!_");
+            } catch (ackErr) {
+                console.error('Warning sending ACK:', ackErr.message);
+            }
+
+            console.log('⏳ Downloading media from WhatsApp (with retry)...');
+            let media = null;
+            for (let attempt = 1; attempt <= 4; attempt++) {
+                try {
+                    media = await msg.downloadMedia();
+                    if (media && media.data) break;
+                } catch (dlErr) {
+                    console.log(`⚠️ Media download attempt ${attempt} pending: ${dlErr.message || dlErr}, waiting 2s...`);
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+
             if (media && media.data) {
                 payload.media_base64 = media.data;
                 payload.media_mimetype = media.mimetype;
                 payload.filename = media.filename || 'attachment';
-                console.log(`📦 Media: ${media.mimetype}`);
+                console.log(`📦 Media downloaded successfully: ${media.mimetype}`);
+            } else {
+                console.error('❌ Could not retrieve media data after retries.');
+                await client.sendMessage(replyChatId, "⚠️ *FinGuard Notice:* Could not retrieve the attached media from WhatsApp. Please ensure the video has fully finished uploading from your phone and forward it again.");
+                return;
             }
         }
 
