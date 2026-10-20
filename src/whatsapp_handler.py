@@ -29,10 +29,9 @@ from twilio.twiml.messaging_response import MessagingResponse
 # ── XML / TwiML Helpers ────────────────────────────────────────────────────────
 
 def build_twiml_response(body: str) -> str:
-    """Uses official Twilio MessagingResponse with child <Body> element for WhatsApp."""
+    """Uses official Twilio MessagingResponse to generate compliant TwiML."""
     resp = MessagingResponse()
-    msg = resp.message()
-    msg.body(body)
+    resp.message(body)
     return str(resp)
 
 # ── Outbound Twilio WhatsApp Sender ───────────────────────────────────────────

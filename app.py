@@ -1185,7 +1185,7 @@ def twiml_xml_response(twiml_content: str) -> Response:
         content=twiml_content,
         media_type="text/xml",
         headers={
-            "Content-Type": "text/xml",
+            "Content-Type": "text/xml; charset=utf-8",
             "Cache-Control": "no-transform",
             "Pragma": "no-cache",
         }
