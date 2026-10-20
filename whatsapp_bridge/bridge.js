@@ -132,11 +132,12 @@ async function handleMessage(msg) {
 
     // ── GUARD 3: BOT LOOP PREVENTION ─────────────────────────────────────
     if (bodyText && (
-        bodyText.startsWith('🛡️ *FinGuard') ||
-        bodyText.startsWith('*Welcome to FinGuard!*') ||
-        bodyText.startsWith('🔍 *FinGuard System Status*') ||
-        bodyText.includes('FinGuard Forensic') ||
-        bodyText.includes('SEBI Registered:')
+        bodyText.includes('FinGuard') ||
+        bodyText.includes('SEBI Registered:') ||
+        bodyText.startsWith('⚠️') ||
+        bodyText.startsWith('🔍') ||
+        bodyText.startsWith('🛡️') ||
+        bodyText.startsWith('*')
     )) {
         console.log('[FILTER] Skipped bot output loop');
         return;
@@ -180,13 +181,16 @@ async function handleMessage(msg) {
 
             console.log('⏳ Downloading media from WhatsApp (with retry)...');
             let media = null;
-            for (let attempt = 1; attempt <= 4; attempt++) {
+            for (let attempt = 1; attempt <= 6; attempt++) {
                 try {
+                    await new Promise(r => setTimeout(r, 2500));
                     media = await msg.downloadMedia();
-                    if (media && media.data) break;
+                    if (media && media.data) {
+                        console.log(`✅ Media successfully retrieved on attempt ${attempt}! Size: ${media.data.length} chars`);
+                        break;
+                    }
                 } catch (dlErr) {
-                    console.log(`⚠️ Media download attempt ${attempt} pending: ${dlErr.message || dlErr}, waiting 2s...`);
-                    await new Promise(r => setTimeout(r, 2000));
+                    console.log(`⚠️ Media download attempt ${attempt} pending: ${dlErr.message || dlErr}...`);
                 }
             }
 
