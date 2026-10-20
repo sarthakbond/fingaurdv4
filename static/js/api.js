@@ -202,8 +202,37 @@ export async function getJobComplaint(jobId, signal) {
   });
 }
 
+export async function getJobComplaintPdf(jobId, signal) {
+  return fetchWithTimeout(apiUrl(`/api/jobs/${encodeURIComponent(jobId)}/complaint/pdf`), {
+    cache: 'no-store',
+    signal,
+  }, 45000, async (res) => {
+    if (!res.ok) throw await readError(res);
+    return res.blob();
+  });
+}
+
+export async function downloadComplaintPdf({ jobId, text, mode, startedAt, verdict }, signal) {
+  return fetchWithTimeout(apiUrl('/api/complaint/pdf'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      job_id: jobId || null,
+      complaint_text: text || null,
+      mode: mode || null,
+      started_at: startedAt || null,
+      verdict: verdict || null,
+    }),
+    signal,
+  }, 45000, async (res) => {
+    if (!res.ok) throw await readError(res);
+    return res.blob();
+  });
+}
+
 /** URL for direct browser download of a completed job's complaint draft. */
 export const complaintUrl = (jobId) => apiUrl(`/api/jobs/${encodeURIComponent(jobId)}/complaint`);
+export const complaintPdfUrl = (jobId) => apiUrl(`/api/jobs/${encodeURIComponent(jobId)}/complaint/pdf`);
 
 /* ── Client-Side Input Validation ────────────────────────────────────────── */
 

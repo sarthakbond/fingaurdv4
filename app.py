@@ -10,12 +10,12 @@ if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request, Query
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-import shutil, os, uuid, re, json
+import shutil, os, uuid, re, json, datetime
 import numpy as np
 
 from src.config import settings, get_threshold, get_vision_threshold, get_stage_config
@@ -28,6 +28,7 @@ from src.stages.stage6_registry import run_stage6_registry
 from src.stages.stage7_ocr import run_stage7_ocr, run_video_keyframes_ocr
 from src.stages.stage8_report import generate_sebi_scores_complaint
 from src.stages.stage9_apk_domain import run_stage9_apk_domain, scan_domain
+from src.pdf_generator import generate_complaint_pdf
 
 from contextlib import asynccontextmanager
 
@@ -557,6 +558,82 @@ async def get_job_complaint(job_id: str):
     if not complaint_text:
         complaint_text = generate_sebi_scores_complaint(jobs[job_id]["result"], "Video")
     return complaint_text
+
+
+@app.get("/api/jobs/{job_id}/complaint/pdf")
+async def get_job_complaint_pdf(job_id: str):
+    """Download the pre-formatted SEBI SCORES Complaint draft for a video job as an institutional PDF."""
+    if job_id not in jobs or "result" not in jobs[job_id]:
+        raise HTTPException(status_code=404, detail="Job result not found")
+    result_data = jobs[job_id]["result"]
+    complaint_text = result_data.get("scores_complaint")
+    if not complaint_text:
+        complaint_text = generate_sebi_scores_complaint(result_data, "Video")
+
+    metadata = {
+        "job_id": job_id,
+        "mode": "Video Analysis",
+        "verdict": result_data.get("verdict", "HIGH RISK / SEVERE VIOLATIONS"),
+        "started_at": result_data.get("timestamp"),
+    }
+    try:
+        pdf_bytes = generate_complaint_pdf(complaint_text, metadata)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate complaint PDF: {e}")
+
+    filename = f"FinGuard_SEBI_SCORES_Complaint_{job_id[:8]}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache",
+        }
+    )
+
+
+class ComplaintPdfRequest(BaseModel):
+    complaint_text: Optional[str] = None
+    job_id: Optional[str] = None
+    mode: Optional[str] = "Multi-Modal Scan"
+    started_at: Optional[str] = None
+    verdict: Optional[str] = None
+
+
+@app.post("/api/complaint/pdf")
+async def create_complaint_pdf(req: ComplaintPdfRequest):
+    """Generate an institutional SEBI SCORES Complaint PDF for any modality."""
+    complaint_text = req.complaint_text
+    metadata = {
+        "job_id": req.job_id,
+        "mode": req.mode or "Multi-Modal Scan",
+        "verdict": req.verdict,
+        "started_at": req.started_at,
+    }
+
+    if not complaint_text and req.job_id and req.job_id in jobs and "result" in jobs[req.job_id]:
+        complaint_text = jobs[req.job_id]["result"].get("scores_complaint")
+        if not complaint_text:
+            complaint_text = generate_sebi_scores_complaint(jobs[req.job_id]["result"], req.mode or "Video")
+
+    if not complaint_text or not complaint_text.strip():
+        raise HTTPException(status_code=400, detail="Missing complaint text or valid job_id")
+
+    try:
+        pdf_bytes = generate_complaint_pdf(complaint_text, metadata)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate complaint PDF: {e}")
+
+    ref_slug = (req.job_id[:8] if req.job_id else datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+    filename = f"FinGuard_SEBI_SCORES_Complaint_{ref_slug}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-cache",
+        }
+    )
 
 
 # ════════════════════════════════════════════════════════════════════

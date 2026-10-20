@@ -10,7 +10,7 @@
    ========================================================================= */
 
 import { $, $$, esc, fmtBytes, fmtClock, fmtScore, fmtStamp, reducedMotion } from './dom.js';
-import { LIMITS, getJobComplaint, health, startRun, validateFile, validateText, validateUrl } from './api.js';
+import { LIMITS, getJobComplaint, downloadComplaintPdf, health, startRun, validateFile, validateText, validateUrl } from './api.js';
 import { planFor } from './stages.js';
 import { toViewModel } from './model.js';
 
@@ -915,7 +915,13 @@ function renderReport(vm) {
           Analyze another
         </button>
         ${complaintAvailable ? `
-          <button class="fg-btn" id="download-complaint-btn" type="button">Download complaint draft</button>
+          <button class="fg-btn" id="download-complaint-pdf-btn" type="button" title="Download official formatted regulatory PDF complaint dossier">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;vertical-align:-2px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            Download Complaint (PDF)
+          </button>
+          <button class="fg-btn fg-btn--secondary" id="download-complaint-txt-btn" type="button" title="Download raw plain text draft">
+            Download (.txt)
+          </button>
         ` : ''}
       </div>
       ${complaintAvailable ? '<p class="fg-report__action-status" id="complaint-action-status" role="status" hidden></p>' : ''}
@@ -1125,8 +1131,12 @@ function renderReport(vm) {
         <div class="fg-complaint-box__header">
           <h3 style="font-size:1.15rem;margin:0;">SEBI SCORES Complaint Draft (Pre-Filing Preview)</h3>
           <div class="fg-complaint-box__actions">
+            <button class="fg-btn fg-btn--sm" id="download-complaint-pdf-inline-btn" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:-2px;" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              Download PDF Draft
+            </button>
             <button class="fg-btn fg-btn--secondary fg-btn--sm" id="copy-complaint-btn" type="button">Copy draft text</button>
-            ${!vm.jobId && vm.hasScoresComplaint ? '<button class="fg-btn fg-btn--secondary fg-btn--sm" id="download-complaint-inline-btn" type="button">Download draft</button>' : ''}
+            <button class="fg-btn fg-btn--secondary fg-btn--sm" id="download-complaint-txt-inline-btn" type="button">Download (.txt)</button>
           </div>
         </div>
         <div class="fg-complaint-notice">
@@ -1161,24 +1171,58 @@ function renderReport(vm) {
     actionStatus.hidden = false;
   };
 
-  const downloadComplaint = async () => {
+  const downloadComplaintPdfHandler = async () => {
     try {
-      const text = vm.jobId ? await getJobComplaint(vm.jobId) : vm.scoresComplaint;
-      if (typeof text !== 'string' || !text.trim()) {
+      const text = vm.scoresComplaint || (vm.jobId ? await getJobComplaint(vm.jobId) : '');
+      if (!text && !vm.jobId) {
         throw new Error('The complaint draft is not available from the analysis service.');
       }
-      const blobUrl = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      if (actionStatus) {
+        actionStatus.textContent = 'Generating institutional PDF complaint dossier...';
+        actionStatus.hidden = false;
+      }
+      const pdfBlob = await downloadComplaintPdf({
+        jobId: vm.jobId,
+        text: text,
+        mode: vm.mode,
+        startedAt: vm.startedAt,
+        verdict: vm.verdictTitle,
+      });
+      const blobUrl = URL.createObjectURL(pdfBlob);
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = 'FinGuard_SEBI_SCORES_Complaint.txt';
+      const ref = vm.jobId ? vm.jobId.slice(0, 8) : (vm.mode || 'audit');
+      link.download = `FinGuard_SEBI_SCORES_Complaint_${ref}.pdf`;
       document.body.append(link);
       link.click();
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
       if (actionStatus) actionStatus.hidden = true;
     } catch (error) {
-      const message = error?.message || 'Could not download the complaint draft.';
-      showComplaintActionError(message, 'Retry download', downloadComplaint);
+      const message = error?.message || 'Could not generate or download the PDF complaint draft.';
+      showComplaintActionError(message, 'Retry PDF download', downloadComplaintPdfHandler);
+    }
+  };
+
+  const downloadComplaintTxtHandler = async () => {
+    try {
+      const text = vm.scoresComplaint || (vm.jobId ? await getJobComplaint(vm.jobId) : '');
+      if (typeof text !== 'string' || !text.trim()) {
+        throw new Error('The complaint draft is not available from the analysis service.');
+      }
+      const blobUrl = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const ref = vm.jobId ? vm.jobId.slice(0, 8) : (vm.mode || 'audit');
+      link.download = `FinGuard_SEBI_SCORES_Complaint_${ref}.txt`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+      if (actionStatus) actionStatus.hidden = true;
+    } catch (error) {
+      const message = error?.message || 'Could not download the text complaint draft.';
+      showComplaintActionError(message, 'Retry download', downloadComplaintTxtHandler);
     }
   };
 
@@ -1200,9 +1244,15 @@ function renderReport(vm) {
       }
     });
   }
-  ['#download-complaint-btn', '#download-complaint-inline-btn'].forEach((selector) => {
+
+  ['#download-complaint-pdf-btn', '#download-complaint-pdf-inline-btn'].forEach((selector) => {
     const button = $(selector);
-    button?.addEventListener('click', downloadComplaint);
+    button?.addEventListener('click', downloadComplaintPdfHandler);
+  });
+
+  ['#download-complaint-txt-btn', '#download-complaint-txt-inline-btn', '#download-complaint-btn', '#download-complaint-inline-btn'].forEach((selector) => {
+    const button = $(selector);
+    button?.addEventListener('click', downloadComplaintTxtHandler);
   });
 }
 
