@@ -122,99 +122,6 @@
     </div>
   </section>
 
-  <!-- Supported Inspection Capabilities -->
-  <section class="fg-section">
-    <div class="fg-container">
-      <div class="fg-section-header">
-        <span class="fg-section-header__eyebrow">Coverage</span>
-        <h2 class="fg-section-header__title">Supported Media & Content Formats</h2>
-        <p class="fg-section-header__desc">Choose a starting point. Each check shows which formats it accepts.</p>
-      </div>
-
-      <div class="fg-cards-grid">
-        <button class="fg-mode-card" type="button" data-analyze-mode="video">
-          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-          <h3 class="fg-card__title">Video Analysis</h3>
-          <p class="fg-card__text">Check video frames, audio, and spoken claims as separate signals.</p>
-          <span class="fg-card__tag">MP4 · AVI · MOV · MKV</span>
-          <span class="fg-mode-card__action">Choose video <span aria-hidden="true">↗</span></span>
-        </button>
-
-        <button class="fg-mode-card" type="button" data-analyze-mode="audio">
-          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-          <h3 class="fg-card__title">Voice & Audio Recording</h3>
-          <p class="fg-card__text">Inspect a voice note, recording, or podcast for synthetic-audio signals.</p>
-          <span class="fg-card__tag">MP3 · WAV · OGG · M4A · FLAC · AAC</span>
-          <span class="fg-mode-card__action">Choose audio <span aria-hidden="true">↗</span></span>
-        </button>
-
-        <button class="fg-mode-card" type="button" data-analyze-mode="image">
-          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          <h3 class="fg-card__title">Image & Screenshot OCR</h3>
-          <p class="fg-card__text">Check screenshots and images for visual signals and readable claims.</p>
-          <span class="fg-card__tag">JPG · JPEG · PNG · WEBP · BMP</span>
-          <span class="fg-mode-card__action">Choose image <span aria-hidden="true">↗</span></span>
-        </button>
-
-        <button class="fg-mode-card" type="button" data-analyze-mode="text">
-          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <h3 class="fg-card__title">Text & Message Screening</h3>
-          <p class="fg-card__text">Review pasted investment pitches, messages, and social posts.</p>
-          <span class="fg-card__tag">Pasted Messages & Posts</span>
-          <span class="fg-mode-card__action">Check text <span aria-hidden="true">↗</span></span>
-        </button>
-
-        <button class="fg-mode-card" type="button" data-analyze-mode="url">
-          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          <h3 class="fg-card__title">Website URL & Domain Audit</h3>
-          <p class="fg-card__text">Inspect a website address for phishing and lookalike-domain signals.</p>
-          <span class="fg-card__tag">Web Links & Domains</span>
-          <span class="fg-mode-card__action">Check a URL <span aria-hidden="true">↗</span></span>
-        </button>
-
-        <button class="fg-mode-card" type="button" data-analyze-mode="apk">
-          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-          <h3 class="fg-card__title">Android APK Inspection</h3>
-          <p class="fg-card__text">Review package details and permissions. APKs are inspected statically, never executed.</p>
-          <span class="fg-card__tag">.APK Files</span>
-          <span class="fg-mode-card__action">Check an APK <span aria-hidden="true">↗</span></span>
-        </button>
-      </div>
-    </div>
-  </section>
-
-  <!-- How It Works (Numbered steps) -->
-  <section class="fg-section fg-section--alt" id="how-section">
-    <div class="fg-container">
-      <div class="fg-section-header">
-        <span class="fg-section-header__eyebrow">Procedure</span>
-        <h2 class="fg-section-header__title">How Verification Works</h2>
-        <p class="fg-section-header__desc">Three steps to review screening signals and decide what to verify next.</p>
-      </div>
-
-      <div class="fg-steps">
-        <div class="fg-step-box">
-          <div class="fg-step-box__num">01</div>
-          <h3 class="fg-step-box__title">Submit Media or Link</h3>
-          <p class="fg-step-box__text">Upload a video, audio recording, image, or APK, or paste a financial message or web address. Uploaded files are sent to the configured backend.</p>
-        </div>
-
-        <div class="fg-step-box">
-          <div class="fg-step-box__num">02</div>
-          <h3 class="fg-step-box__title">Multi-Stage Forensic Screening</h3>
-          <p class="fg-step-box__text">The system screens face frames, analyzes voice frequencies, transcribes speech, evaluates regulatory compliance, and cross-checks SEBI records.</p>
-        </div>
-
-        <div class="fg-step-box">
-          <div class="fg-step-box__num">03</div>
-          <h3 class="fg-step-box__title">Review Evidence Dossier</h3>
-          <p class="fg-step-box__text">Review the findings and evidence returned for that format. Some checks or details may be unavailable; any complaint draft should be reviewed before use.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
   <!-- ══════════════════════════════════════════════════════════════════════
        OFFICIAL SEBI REGISTRY LIVE DATABASE & INSTANT SEARCH
        ═══════════════════════════════════════════════════════════════════ -->
@@ -285,6 +192,98 @@
 
           <!-- Search Results Container -->
           <div class="fg-registry-results" id="registry-results-container" hidden></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Supported Inspection Capabilities -->
+  <section class="fg-section fg-section--alt">
+    <div class="fg-container">
+      <div class="fg-section-header">
+        <span class="fg-section-header__eyebrow">Coverage</span>
+        <h2 class="fg-section-header__title">Supported Media & Content Formats</h2>
+        <p class="fg-section-header__desc">Choose a starting point. Each check shows which formats it accepts.</p>
+      </div>
+
+      <div class="fg-cards-grid">
+        <button class="fg-mode-card" type="button" data-analyze-mode="video">
+          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          <h3 class="fg-card__title">Video Analysis</h3>
+          <p class="fg-card__text">Check video frames, audio, and spoken claims as separate signals.</p>
+          <span class="fg-card__tag">MP4 · AVI · MOV · MKV</span>
+          <span class="fg-mode-card__action">Choose video <span aria-hidden="true">↗</span></span>
+        </button>
+
+        <button class="fg-mode-card" type="button" data-analyze-mode="audio">
+          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+          <h3 class="fg-card__title">Voice & Audio Recording</h3>
+          <p class="fg-card__text">Inspect a voice note, recording, or podcast for synthetic-audio signals.</p>
+          <span class="fg-card__tag">MP3 · WAV · OGG · M4A · FLAC · AAC</span>
+          <span class="fg-mode-card__action">Choose audio <span aria-hidden="true">↗</span></span>
+        </button>
+
+        <button class="fg-mode-card" type="button" data-analyze-mode="image">
+          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <h3 class="fg-card__title">Image & Screenshot OCR</h3>
+          <p class="fg-card__text">Check screenshots and images for visual signals and readable claims.</p>
+          <span class="fg-card__tag">JPG · JPEG · PNG · WEBP · BMP</span>
+          <span class="fg-mode-card__action">Choose image <span aria-hidden="true">↗</span></span>
+        </button>
+
+        <button class="fg-mode-card" type="button" data-analyze-mode="text">
+          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <h3 class="fg-card__title">Text & Message Screening</h3>
+          <p class="fg-card__text">Review pasted investment pitches, messages, and social posts.</p>
+          <span class="fg-card__tag">Pasted Messages & Posts</span>
+          <span class="fg-mode-card__action">Check text <span aria-hidden="true">↗</span></span>
+        </button>
+
+        <button class="fg-mode-card" type="button" data-analyze-mode="url">
+          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <h3 class="fg-card__title">Website URL & Domain Audit</h3>
+          <p class="fg-card__text">Inspect a website address for phishing and lookalike-domain signals.</p>
+          <span class="fg-card__tag">Web Links & Domains</span>
+          <span class="fg-mode-card__action">Check a URL <span aria-hidden="true">↗</span></span>
+        </button>
+
+        <button class="fg-mode-card" type="button" data-analyze-mode="apk">
+          <svg class="fg-card__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          <h3 class="fg-card__title">Android APK Inspection</h3>
+          <p class="fg-card__text">Review package details and permissions. APKs are inspected statically, never executed.</p>
+          <span class="fg-card__tag">.APK Files</span>
+          <span class="fg-mode-card__action">Check an APK <span aria-hidden="true">↗</span></span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works (Numbered steps) -->
+  <section class="fg-section" id="how-section">
+    <div class="fg-container">
+      <div class="fg-section-header">
+        <span class="fg-section-header__eyebrow">Procedure</span>
+        <h2 class="fg-section-header__title">How Verification Works</h2>
+        <p class="fg-section-header__desc">Three steps to review screening signals and decide what to verify next.</p>
+      </div>
+
+      <div class="fg-steps">
+        <div class="fg-step-box">
+          <div class="fg-step-box__num">01</div>
+          <h3 class="fg-step-box__title">Submit Media or Link</h3>
+          <p class="fg-step-box__text">Upload a video, audio recording, image, or APK, or paste a financial message or web address. Uploaded files are sent to the configured backend.</p>
+        </div>
+
+        <div class="fg-step-box">
+          <div class="fg-step-box__num">02</div>
+          <h3 class="fg-step-box__title">Multi-Stage Forensic Screening</h3>
+          <p class="fg-step-box__text">The system screens face frames, analyzes voice frequencies, transcribes speech, evaluates regulatory compliance, and cross-checks SEBI records.</p>
+        </div>
+
+        <div class="fg-step-box">
+          <div class="fg-step-box__num">03</div>
+          <h3 class="fg-step-box__title">Review Evidence Dossier</h3>
+          <p class="fg-step-box__text">Review the findings and evidence returned for that format. Some checks or details may be unavailable; any complaint draft should be reviewed before use.</p>
         </div>
       </div>
     </div>
