@@ -23,8 +23,17 @@ APP_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if APP_ROOT not in sys.path:
     sys.path.insert(0, APP_ROOT)
 
-from experiments.deepfake_finetune.scripts.train_finetune import build_model
-from experiments.deepfake_finetune.scripts.validate_dataset import validate_manifest
+try:
+    from experiments.deepfake_finetune.scripts.train_finetune import build_model
+    from experiments.deepfake_finetune.scripts.validate_dataset import validate_manifest
+    HAS_EXPERIMENTS = True
+except ModuleNotFoundError:
+    HAS_EXPERIMENTS = False
+    build_model = None
+    validate_manifest = None
+
+pytestmark = pytest.mark.skipif(not HAS_EXPERIMENTS, reason="experiments module not present in workspace")
+
 from src.stages.backends.ms_eff_gcvit_backend import preprocess_isotropic
 from src.stages.backends import get_vision_backend
 from src.config import get_vision_threshold

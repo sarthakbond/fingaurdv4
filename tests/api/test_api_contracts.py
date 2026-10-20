@@ -108,6 +108,12 @@ def test_job_create_poll_and_complaint(client):
         assert complaint_res.status_code == 200
         assert "SEBI SCORES EVIDENCE DOSSIER" in complaint_res.text
 
+        # Cleanup mocked temp directory
+        import os, shutil
+        temp_dir = os.path.join("temp", job_id)
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
 
 def test_oversize_file_rejection(client):
     """Simulates an upload exceeding MAX_UPLOAD_SIZE (100MB)."""

@@ -253,7 +253,7 @@ export function toViewModel(raw, meta = {}) {
     }
   }
 
-  const verdictLabel = tier.label;
+  const verdictLabel = rawVerdict || (isDeepfake && !isScam ? 'Warning: Deepfake Detected' : tier.label);
   const clockFor = buildQuoteClock(raw);
 
   const visionScore = num(raw.vision_score);
@@ -350,13 +350,12 @@ export function toViewModel(raw, meta = {}) {
     const flaggedParts = flaggedAudio.length;
     const isAudioDegraded = degradedModules.includes('stage3_audio');
     const isAudioSynthetic = (audioScore !== null && audioScore >= 0.50)
-      || flaggedParts > 0
       || (raw.scan_type === 'audio' && raw.is_deepfake === true);
-    const isAudioFlagged = Boolean(isAudioSynthetic);
+    const isAudioFlagged = Boolean(isAudioSynthetic || flaggedParts > 0);
 
     // Plain, everyday English status:
-    // - "AI Voice Detected": classified as synthetic (score >= 0.50 or flagged windows)
-    // - "Could Not Confirm Voice Type": inconclusive / degraded
+    // - "AI Voice Detected": classified as synthetic (score >= 0.50)
+    // - "Could Not Confirm Voice Type": inconclusive / degraded / partial anomalies
     // - "Human Voice Detected": classified as genuine
     let audioStatus = 'Voice result not available';
     let audioBadgeClass = 'fg-badge--idle';
@@ -364,7 +363,7 @@ export function toViewModel(raw, meta = {}) {
     if (isAudioSynthetic) {
       audioStatus = 'AI Voice Detected';
       audioBadgeClass = 'fg-badge--high';
-    } else if (isAudioDegraded) {
+    } else if (isAudioDegraded || flaggedParts > 0) {
       audioStatus = 'Could Not Confirm Voice Type';
       audioBadgeClass = 'fg-badge--warn';
     } else if (audioScore < 0.50 || (raw.scan_type === 'audio' && raw.is_deepfake === false)) {

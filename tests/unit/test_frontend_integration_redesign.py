@@ -9,6 +9,8 @@ Asserts:
 """
 import io
 import json
+import os
+import shutil
 import pytest
 from unittest.mock import patch, MagicMock
 
@@ -20,8 +22,9 @@ def test_spa_shell_routing(client):
         res = client.get(route)
         assert res.status_code == 200, f"Route {route} failed with {res.status_code}"
         assert "<title>FinGuard" in res.text
-        assert "Check before you trust." in res.text
-        assert "fg-shield-3d" in res.text
+        assert "Check before" in res.text
+        assert "you trust" in res.text
+        assert "fg-brand__shield" in res.text
         assert "/static/css/banking.css" in res.text
 
 
@@ -120,6 +123,11 @@ def test_video_job_lifecycle(client):
         comp_res = client.get(f"/api/jobs/{job_id}/complaint")
         assert comp_res.status_code == 200
         assert "PRE-FILING SEBI SCORES EVIDENCE DOSSIER" in comp_res.text
+
+        # Cleanup mocked temp directory
+        temp_dir = os.path.join("temp", job_id)
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def test_image_scan_contract(client):

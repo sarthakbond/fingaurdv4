@@ -64,7 +64,7 @@ def run_stage3_audio(
                 result["max_score"] = max(result.get("max_score", 0.0), 0.96)
                 result["avg_score"] = max(result.get("avg_score", 0.0), 0.94)
                 result["raw_peak_score"] = max(result.get("raw_peak_score", 0.0), 0.96)
-                result["model_backend"] = f"{result.get('model_backend')}_gemini_provenance"
+                result["forensic_enhancement"] = "gemini_provenance"
                 duration_sec = round(len(audio_arr) / float(sr), 2)
                 result["flagged_segments"] = [
                     {
@@ -78,7 +78,7 @@ def run_stage3_audio(
                 # Neural TTS detected via acoustic harmonics & vocoder bandwidth compression
                 result["max_score"] = round(max(result.get("max_score", 0.0), ac_score), 4)
                 result["raw_peak_score"] = round(max(result.get("raw_peak_score", 0.0), ac_score), 4)
-                result["model_backend"] = f"{result.get('model_backend')}_acoustic_tts"
+                result["forensic_enhancement"] = "acoustic_tts"
                 if not result.get("flagged_segments"):
                     duration_sec = round(len(audio_arr) / float(sr), 2)
                     reasons = acoustic.get("indicators", []) or ["Neural TTS spectral signature"]
@@ -93,8 +93,9 @@ def run_stage3_audio(
         except Exception as ac_err:
             print(f"[{job_id}] Acoustic forensics non-fatal warning: {ac_err}")
 
+        enh_tag = f" + {result['forensic_enhancement']}" if result.get("forensic_enhancement") else ""
         print(
-            f"[{job_id}] Audio complete ({result.get('model_backend')}). "
+            f"[{job_id}] Audio complete ({result.get('model_backend')}{enh_tag}). "
             f"Calibrated Score: {result['max_score']:.4f} (Peak: {result.get('raw_peak_score', result['max_score']):.4f}), "
             f"Chunks: {len(result['all_segments'])}, Impersonation: {result['impersonation_check']['is_impersonation']}"
         )

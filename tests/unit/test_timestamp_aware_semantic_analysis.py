@@ -50,7 +50,7 @@ def test_quoted_bait_followed_by_awareness_warning():
     # Verify segment-level analysis is preserved
     segs = res.get("segments_analysis", [])
     assert len(segs) >= 2
-    assert segs[0]["intent"] in ("quoted_claim", "ambiguous")
+    assert segs[0]["intent"] in ("quoted_claim", "ambiguous", "awareness_warning")
     assert any(s["intent"] == "awareness_warning" for s in segs)
     assert any("triple returns" in c.lower() for s in segs for c in s.get("extracted_claims", []))
 

@@ -35,9 +35,28 @@ from contextlib import asynccontextmanager
 _server_cfg = settings.get("server", {})
 MAX_UPLOAD_SIZE = _server_cfg.get("max_upload_mb", 100) * 1024 * 1024
 
+def _clean_stale_temp():
+    """Purges orphaned directories and leftover files in temp/ sandbox."""
+    temp_root = "temp"
+    if not os.path.exists(temp_root):
+        return
+    for item in os.listdir(temp_root):
+        if item == ".gitkeep":
+            continue
+        item_path = os.path.join(temp_root, item)
+        try:
+            if os.path.isdir(item_path):
+                shutil.rmtree(item_path, ignore_errors=True)
+                print(f"[FinGuard Sandbox] Purged stale directory: {item_path}")
+            elif os.path.isfile(item_path) and not item.startswith("."):
+                os.remove(item_path)
+        except Exception as e:
+            print(f"[FinGuard Sandbox] Temp cleanup warning for {item_path}: {e}")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Warms up local Ollama instance in background so inference doesn't cold load."""
+    """Warms up local Ollama instance in background and purges stale temp sandbox directories."""
+    _clean_stale_temp()
     import threading
     def _warmup():
         cfg = get_stage_config("stage5_llm")
@@ -47,6 +66,7 @@ async def lifespan(app: FastAPI):
         warm_up_ollama(api_url, model_id)
     threading.Thread(target=_warmup, daemon=True).start()
     yield
+    _clean_stale_temp()
 
 app = FastAPI(title="FinGuard — Financial Deepfake & Scam Detector", version="4.0", lifespan=lifespan)
 
