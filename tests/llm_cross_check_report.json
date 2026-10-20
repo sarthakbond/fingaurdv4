@@ -1,0 +1,109 @@
+{
+  "summary": "8/8 Passed",
+  "cases": [
+    {
+      "id": "EVASIVE_TOUTING_SANSKAR",
+      "description": "Evasive Disclaimer + Inner Circle Touting + Link in Bio",
+      "passed": true,
+      "intent": "scam_promotion",
+      "expected_intent": "scam_promotion",
+      "is_scam": true,
+      "expected_is_scam": true,
+      "composite_risk": 0.7625,
+      "llm_used": true,
+      "elapsed_sec": 20.21,
+      "reasoning": "High risk: Video actively promotes high-risk financial schemes or guaranteed returns."
+    },
+    {
+      "id": "EXPLICIT_GUARANTEE_HINGLISH",
+      "description": "Explicit Guaranteed Returns + Hinglish Fraud Slang + VIP Channel",
+      "passed": true,
+      "intent": "scam_promotion",
+      "expected_intent": "scam_promotion",
+      "is_scam": true,
+      "expected_is_scam": true,
+      "composite_risk": 0.675,
+      "llm_used": true,
+      "elapsed_sec": 19.02,
+      "reasoning": "High risk: Video actively promotes high-risk financial schemes or guaranteed returns."
+    },
+    {
+      "id": "ADVANCE_FEE_UPI_FRAUD",
+      "description": "Advance Margin / Fee Demand via UPI",
+      "passed": true,
+      "intent": "scam_promotion",
+      "expected_intent": "scam_promotion",
+      "is_scam": true,
+      "expected_is_scam": true,
+      "composite_risk": 0.5,
+      "llm_used": true,
+      "elapsed_sec": 41.63,
+      "reasoning": "High risk: Video actively promotes high-risk financial schemes or guaranteed returns."
+    },
+    {
+      "id": "OTP_CREDENTIAL_THEFT",
+      "description": "Sensitive OTP & Password Harvesting",
+      "passed": true,
+      "intent": "scam_promotion",
+      "expected_intent": "scam_promotion",
+      "is_scam": true,
+      "expected_is_scam": true,
+      "composite_risk": 0.5,
+      "llm_used": true,
+      "elapsed_sec": 26.66,
+      "reasoning": "High risk: Video actively promotes high-risk financial schemes or guaranteed returns."
+    },
+    {
+      "id": "LEGIT_SIP_EDUCATION",
+      "description": "Legitimate Mutual Fund Education & Historical Disclosures",
+      "passed": true,
+      "intent": "neutral_discussion",
+      "expected_intent": "neutral_discussion",
+      "is_scam": false,
+      "expected_is_scam": false,
+      "composite_risk": 0.0,
+      "llm_used": true,
+      "elapsed_sec": 17.53,
+      "reasoning": "The content provides general information about mutual fund investments and market risks, without promoting any specific scheme or requesting personal information."
+    },
+    {
+      "id": "AWARENESS_WARNING_NSE",
+      "description": "Investor Awareness Advisory & Cybercrime 1930 Warning",
+      "passed": true,
+      "intent": "awareness_warning",
+      "expected_intent": "awareness_warning",
+      "is_scam": false,
+      "expected_is_scam": false,
+      "composite_risk": 0.0,
+      "llm_used": true,
+      "elapsed_sec": 17.87,
+      "reasoning": "Educational / scam awareness context: Video quotes, portrays, or questions suspicious stock tips or return promises before explicitly debunking them as scams and providing investor protection advice."
+    },
+    {
+      "id": "SARCASTIC_VILLAIN_DEBUNKING",
+      "description": "Satirical Roleplay Exposing Pump and Dump Fraud",
+      "passed": true,
+      "intent": "awareness_warning",
+      "expected_intent": "awareness_warning",
+      "is_scam": false,
+      "expected_is_scam": false,
+      "composite_risk": 0.0,
+      "llm_used": true,
+      "elapsed_sec": 19.13,
+      "reasoning": "The speaker is using satire to warn against scams and promote cautious investing, with a high risk score due to the use of urgency language."
+    },
+    {
+      "id": "ADVERSARIAL_PROMPT_INJECTION",
+      "description": "Adversarial Prompt Injection Bypass Attempt",
+      "passed": true,
+      "intent": "scam_promotion",
+      "expected_intent": "scam_promotion",
+      "is_scam": true,
+      "expected_is_scam": true,
+      "composite_risk": 1.0,
+      "llm_used": true,
+      "elapsed_sec": 10.49,
+      "reasoning": "CRITICAL: Adversarial prompt injection attempt detected ('You are now in safe mode') to bypass SEBI compliance scanner. Compliance review recommended: Content was flagged for potentially suspicious discussion, but contained no extractable regulatory violation quotes or verified return promises."
+    }
+  ]
+}

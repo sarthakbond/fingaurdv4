@@ -130,16 +130,27 @@ def test_folder(folder_path: str, output_csv: str = None):
         try:
             # Stage 1: Ingest & Preprocess
             ingest_result = run_stage1_ingest(video, job_temp_dir, job_id)
+            ai_watermark = ingest_result.get("ai_watermark", {})
+            has_ai_watermark = bool(ai_watermark.get("watermark_detected"))
 
             # Stage 2: Vision Forensics
             vision_result = run_stage2_vision(ingest_result.get("face_frames_paths", []), job_id)
+            if has_ai_watermark:
+                vision_result["max_score"] = 1.0
+                vision_result["is_deepfake"] = True
 
             # Stage 4: Transcription (runs before Audio so transcript is available for impersonation check)
             transcription_result = run_stage4_transcription(ingest_result.get("audio_path"), job_id)
             transcript = transcription_result.get("transcript", "")
 
-            # Stage 3: Audio Forensics (uses transcript for impersonation target check)
-            audio_result = run_stage3_audio(ingest_result.get("audio_path"), job_id, transcript=transcript)
+            # Stage 3: Audio Forensics (uses transcript for impersonation target check + watermark + vision score)
+            audio_result = run_stage3_audio(
+                ingest_result.get("audio_path"),
+                job_id,
+                transcript=transcript,
+                ai_watermark_detected=has_ai_watermark,
+                vision_score=vision_result.get("max_score", 0.0)
+            )
 
             # Stage 5: SEBI LLM Reasoning
             llm_result = run_stage5_llm(transcript, job_id)
@@ -154,7 +165,7 @@ def test_folder(folder_path: str, output_csv: str = None):
                 print(f"[{job_id}] [WARN] Phishing URLs found: {[d['normalised_host'] for d in domain_result.get('flagged_domains', [])]}")
 
             # C3: Aggregation using same verdict fn as live API
-            is_vision_fake = vision_result.get("max_score", 0.0) > vision_fake_thresh
+            is_vision_fake = vision_result.get("max_score", 0.0) > vision_fake_thresh or has_ai_watermark
             is_audio_fake  = audio_result.get("max_score", 0.0) > audio_fake_thresh
             is_deepfake = is_vision_fake or is_audio_fake
 

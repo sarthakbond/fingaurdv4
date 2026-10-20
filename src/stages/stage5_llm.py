@@ -417,8 +417,8 @@ PROMOTIONAL_CTA_PATTERNS = [
     r"(?i)\b(?:check|click|tap|see|visit)\s+(?:the\s+)?link\s+in\s+(?:my\s+|the\s+)?bio\b",
     r"(?i)\blink\s+in\s+(?:my\s+|the\s+)?bio\b",
     r"(?i)\b(?:my\s+)?inner\s*circle\s+(?:is\s+)?(?:heavily\s+)?buying\b",
-    r"(?i)\b(?:can'?t|cannot)\s+give\s+(?:direct\s+)?(?:advice|recommendations?)\s+here[,\s]+but\b",
-    r"(?i)\bnot\s+financial\s+advice[,\s]+but\b",
+    r"(?i)\b(?:can'?t|cannot)\s+give\s+(?:direct\s+)?(?:financial\s+|investment\s+)?(?:advice|recommendations?|tips?)\s+here[,\s]+but\b",
+    r"(?i)\bnot\s+(?:direct\s+)?(?:financial|investment)\s+advice[,\s]+but\b",
 ]
 
 def find_enclosing_clause(text: str, start_pos: int, end_pos: int) -> str:
@@ -721,8 +721,8 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
 
     # 9. Check credentials and regulatory evasion disclaimers
     credential_evasion_patterns = [
-        r"(?i)\b(?:can'?t|cannot)\s+give\s+(?:direct\s+)?(?:advice|recommendations?)\s+here[,\s]+but\b",
-        r"(?i)\bnot\s+financial\s+advice[,\s]+but\b",
+        r"(?i)\b(?:can'?t|cannot)\s+give\s+(?:direct\s+)?(?:financial\s+|investment\s+)?(?:advice|recommendations?|tips?)\s+here[,\s]+but\b",
+        r"(?i)\bnot\s+(?:direct\s+)?(?:financial|investment)\s+advice[,\s]+but\b",
         r"(?i)\b(?:sebi\s*(?:registered|approved|certified|advisor)|ina[0-9]{8,14}|inh[0-9]{8,14})\b",
     ]
     for pat in credential_evasion_patterns:
@@ -806,11 +806,14 @@ def heuristic_sebi_analysis(text: str, pii_count: int, slang_found: list, inject
             or bool(quotes["fee_or_transfer_requests"])
             or bool(quotes["credential_or_otp_requests"])
             or bool(quotes["unsupported_regulatory_claims"])
+            or bool(quotes["implied_returns"])
+            or bool(quotes["credential_misrepresentation"])
         )
         if is_scam:
             max_signal = max(scores.values()) if scores else 0.0
             composite = max(composite, scam_thresh, round(max_signal * 0.85, 4))
 
+        reasoning_parts = []
         if quotes["specific_return_promises"]:
             reasoning_parts.append("Guaranteed return promises detected")
         if quotes["implied_returns"]:
@@ -1287,19 +1290,22 @@ def run_stage5_llm(
         "You are an expert SEBI compliance and financial fraud investigator analyzing financial text for scams, regulatory violations, and investor fraud.\n"
         "Your primary job is to perform AI-led semantic intent classification to determine the SPEAKER'S CONTEXTUAL INTENT and STANCE.\n\n"
         "CONTEXTUAL INTENT CATEGORIES:\n"
-        "1. 'scam_promotion': The speaker actively promotes, endorses, offers, or solicits high-risk financial schemes, guaranteed returns, VIP/paid channels, advance fees, Demat credentials, or impersonates regulators. (Includes deceptive promotions hiding behind token disclaimers like 'for educational purposes only').\n"
+        "1. 'scam_promotion': The speaker actively promotes, endorses, offers, or solicits high-risk financial schemes, guaranteed returns, VIP/paid channels, advance fees, Demat credentials, or impersonates regulators. (Includes deceptive promotions hiding behind token disclaimers like 'for educational purposes only' or 'not financial advice').\n"
         "2. 'awareness_warning': The speaker warns the public AGAINST scams, educates viewers on fraud prevention, debunks fraudulent claims, or uses sarcasm/satire to expose scam tactics. The speaker tells viewers NOT to trust fraudsters, NEVER to pay fees, and NEVER to share OTPs.\n"
         "3. 'neutral_discussion': Legitimate financial education, broad market commentary, historical performance disclosures (e.g., 'fund generated 14% over the past 5 years'), corporate earnings news, or standard statutory disclaimers.\n"
         "4. 'quoted_claim': Speaker quotes, narrates, portrays, or questions a suspicious tip or promise made by a third party without endorsing it.\n"
         "5. 'ambiguous': Content discusses suspicious claims, extreme yields, or controversial strategies without clear promotional endorsement and without clear cautionary warning (requires human review).\n\n"
-        "EVALUATING HIGH-RISK ACTIONS (OTPs, Credentials, Advance Fees, Guaranteed Returns):\n"
+        "EVALUATING HIGH-RISK ACTIONS & COMMON SCAMMER EVASION TACTICS:\n"
         "- ENDORSING/SOLICITING: Speaker asks the audience to perform the action ('send OTP', 'pay advance margin', 'join VIP group', 'I guarantee 50%') -> scam_promotion.\n"
         "- WARNING/PROHIBITING: Speaker instructs the audience NOT to perform the action ('never share OTP', 'do not deposit fees', 'beware of guaranteed returns') -> awareness_warning.\n"
         "- QUOTING/ATTRIBUTING: Speaker mentions scam tactics as an example of what bad actors do or quotes a video ('Scammers claim they can double your money', 'I saw a video promising triple returns') -> quoted_claim or awareness_warning.\n"
         "- REPORTING/DEBUNKING: Speaker shares a fraud story or advises reporting to authorities ('I reported a scammer who demanded 10% fee to SEBI') -> awareness_warning.\n"
         "- SARCASM/IRONY: Speaker uses sarcasm to ridicule scam promises ('Sure, Loscar movie, beggar ban jaoge, blockbuster scam hai ye') -> awareness_warning.\n"
         "- SATIRICAL ROLEPLAY & DEMONSTRATION: Speaker roleplays as a scammer/villain to demonstrate how scams work ('main yaane ki de villain... promote over misleading ads... create artificial demand... thanks to bakra investors like you...'). The speaker is EXPOSING scam tactics, NOT promoting them -> awareness_warning (stance: warning).\n"
-        "- TOKEN DISCLAIMER EVASION: Speaker says 'educational only' or 'not financial advice', but directly pitches a paid VIP group, guaranteed profits, or asks for money -> scam_promotion.\n\n"
+        "- FAUX DISCLAIMERS & REGULATORY EVASION: When a speaker uses evasive disclaimers such as 'Look, I can't give direct financial advice here, but...', 'Not financial advice, but...', or 'I'm not allowed to tell you what to buy, but...', while touting an asset or funneling viewers, this is a deliberate regulatory evasion tactic under SEBI (Investment Advisers) Regulations, 2013. You MUST classify this as 'scam_promotion' (stance: 'promoting', is_scam_likely: true) and extract the quote into 'credential_misrepresentation' (score >= 0.85).\n"
+        "- INSIDER TOUTING & IMPLIED RETURNS: Phrases like 'my inner circle is heavily buying', 'big things are coming', 'massive breakout incoming', 'loading up right now', 'secret stock pick' create artificial urgency and imply guaranteed or outsized returns without statutory risk disclosures under SEBI PFUTP Regulations. You MUST classify as 'scam_promotion' and extract into 'implied_returns' (score >= 0.85).\n"
+        "- OFF-PLATFORM FUNNELING & BIO LINKS: Phrases like 'check the link in my bio', 'link in bio', 'DM me for the ticker/entry price', 'join private telegram' are intentional off-platform funnels designed to evade public regulatory scrutiny and fleece retail investors in private unmonitored channels. You MUST extract into 'paywall_push' (score >= 0.85).\n"
+        "- DEFINITIVE SCAM VERDICT MANDATE: If the content contains evasive disclaimers, insider touting, bio funnels, guaranteed returns, or fee demands, it is a REGULATORY VIOLATION and a POTENTIAL SCAM. You MUST set content_intent to 'scam_promotion', speaker_stance to 'promoting', and is_scam_likely to true. Never classify promotional touting or bio funnels as 'neutral_discussion' or 'ambiguous'.\n\n"
         "SEGMENT-LEVEL ANALYSIS INSTRUCTIONS:\n"
         "- When timestamped segments are provided, analyze each segment in 'segments_analysis'.\n"
         "- For each segment, output:\n"
@@ -1312,10 +1318,10 @@ def run_stage5_llm(
         "(Do NOT repeat the full transcript text or timestamps in segments_analysis; identify segments by segment_index).\n\n"
         "- TEMPORAL MIXED-INTENT AGGREGATION RULES:\n"
         "  1. Quoted bait / inquiry followed by awareness warning: If a speaker quotes or asks about a suspicious third-party stock tip / return promise without endorsing it, and then explicitly debunks it as a scam, ridicules it, or issues investor protection advice (e.g. 'Loscar movie... beggar ban jaoge... blockbuster scam... soch kar invest kar'), the overall content_intent is 'awareness_warning', speaker_stance is 'warning', is_scam_likely is false, composite_risk_score is 0.0, and specific_return_promises is empty.\n"
-        "  2. Active promotion with token disclaimer: If a speaker actively promotes a scheme, guaranteed returns, or VIP group, an attached token disclaimer ('educational only') does not erase the scam. Content_intent remains 'scam_promotion' and is_scam_likely is true.\n"
+        "  2. Active promotion with token disclaimer: If a speaker actively promotes a scheme, guaranteed returns, or VIP group, an attached token disclaimer ('educational only', 'not financial advice') does not erase the scam. Content_intent remains 'scam_promotion' and is_scam_likely is true.\n"
         "  3. Ambiguous content: If claims are disputed or unclear without clear warning or clear promotion, content_intent is 'ambiguous'.\n\n"
         "CRITICAL EVIDENCE EXTRACTION RULES:\n"
-        "- ONLY extract quotes into specific_return_promises, fee_or_transfer_requests, credential_or_otp_requests, urgency_scarcity_language, paywall_push, unsupported_regulatory_claims if the speaker is ENDORSING or SOLICITING them.\n"
+        "- ONLY extract quotes into specific_return_promises, fee_or_transfer_requests, credential_or_otp_requests, urgency_scarcity_language, paywall_push, unsupported_regulatory_claims, implied_returns, credential_misrepresentation if the speaker is ENDORSING or SOLICITING them.\n"
         "- DO NOT extract quotes into top-level violation lists if the speaker is warning against, quoting, reporting, or satirizing them.\n"
         "- For 'awareness_warning' and 'neutral_discussion', ALL signal_scores must be 0.0 and is_scam_likely must be false.\n\n"
         "Respond in valid JSON with exactly these keys:\n"
@@ -1329,9 +1335,9 @@ def run_stage5_llm(
         "- credential_or_otp_requests: list of exact quote strings requesting credentials/OTPs by speaker\n"
         "- unsupported_regulatory_claims: list of exact quote strings claiming SEBI/RBI approval by speaker\n"
         "- social_proof_inflation: list of exact quote strings inflating member counts\n"
-        "- paywall_push: list of exact quote strings pushing paid channels or DMs\n"
-        "- implied_returns: list of exact quote strings implying returns\n"
-        "- credential_misrepresentation: list of exact quote strings exaggerating credentials\n"
+        "- paywall_push: list of exact quote strings pushing paid channels, DMs, or link in bio\n"
+        "- implied_returns: list of exact quote strings implying returns or insider touting\n"
+        "- credential_misrepresentation: list of exact quote strings exaggerating credentials or using evasive faux disclaimers\n"
         "- signal_scores: dict with keys (explicit_returns, implied_returns, urgency_scarcity, social_proof, paywall_push, credential_misrep)\n"
         "- is_scam_likely: boolean, true ONLY if content_intent is 'scam_promotion'\n"
         "- reasoning: short explanatory string describing speaker intent and stance."
@@ -1449,6 +1455,9 @@ def run_stage5_llm(
             # Retain the review-required ambiguous state rather than forcing a safe or scam verdict
             if heuristic_baseline.get("content_intent") == "ambiguous" and intent in ("neutral_discussion", "neutral"):
                 intent = "ambiguous"
+            # Prevent false-negative downgrade: If deterministic scanner detected confirmed promotional scam violations, maintain scam_promotion
+            if heuristic_baseline.get("content_intent") == "scam_promotion" and heuristic_baseline.get("is_scam_likely") and intent in ("neutral_discussion", "neutral", "ambiguous"):
+                intent = "scam_promotion"
 
             parsed_json["content_intent"] = intent
 
@@ -1583,7 +1592,8 @@ def run_stage5_llm(
                     parsed_json["claimed_registration_number"] = heuristic_baseline["claimed_registration_number"]
                 for k in [
                     "fee_or_transfer_requests", "credential_or_otp_requests", "unsupported_regulatory_claims",
-                    "urgency_scarcity_language", "specific_return_promises", "paywall_push", "implied_returns"
+                    "urgency_scarcity_language", "specific_return_promises", "paywall_push", "implied_returns",
+                    "credential_misrepresentation", "social_proof_inflation"
                 ]:
                     if not parsed_json.get(k) and heuristic_baseline.get(k):
                         parsed_json[k] = heuristic_baseline[k]
@@ -1592,10 +1602,14 @@ def run_stage5_llm(
                     parsed_json["signal_scores"]["explicit_returns"] = max(parsed_json["signal_scores"].get("explicit_returns", 0.0), 0.85)
                 if parsed_json.get("urgency_scarcity_language") and parsed_json["signal_scores"].get("urgency_scarcity", 0.0) < 0.5:
                     parsed_json["signal_scores"]["urgency_scarcity"] = max(parsed_json["signal_scores"].get("urgency_scarcity", 0.0), 0.70)
-                if parsed_json.get("paywall_push") and parsed_json["signal_scores"].get("paywall_push", 0.0) < 0.5:
-                    parsed_json["signal_scores"]["paywall_push"] = max(parsed_json["signal_scores"].get("paywall_push", 0.0), 0.75)
+                if (parsed_json.get("paywall_push") or parsed_json.get("fee_or_transfer_requests")) and parsed_json["signal_scores"].get("paywall_push", 0.0) < 0.5:
+                    parsed_json["signal_scores"]["paywall_push"] = max(parsed_json["signal_scores"].get("paywall_push", 0.0), 0.80)
                 if parsed_json.get("implied_returns") and parsed_json["signal_scores"].get("implied_returns", 0.0) < 0.5:
                     parsed_json["signal_scores"]["implied_returns"] = max(parsed_json["signal_scores"].get("implied_returns", 0.0), 0.70)
+                if (parsed_json.get("credential_misrepresentation") or parsed_json.get("credential_or_otp_requests") or parsed_json.get("unsupported_regulatory_claims")) and parsed_json["signal_scores"].get("credential_misrep", 0.0) < 0.5:
+                    parsed_json["signal_scores"]["credential_misrep"] = max(parsed_json["signal_scores"].get("credential_misrep", 0.0), 0.85)
+                if parsed_json.get("social_proof_inflation") and parsed_json["signal_scores"].get("social_proof", 0.0) < 0.5:
+                    parsed_json["signal_scores"]["social_proof"] = max(parsed_json["signal_scores"].get("social_proof", 0.0), 0.70)
 
                 active_slang = heuristic_baseline.get("hinglish_slang_detected", [])
                 if active_slang:

@@ -1,0 +1,230 @@
+[
+  {
+    "filename": "sanskar.mp4",
+    "category": "AI Deepfake Video",
+    "verdict": "Critical: Deepfake + Scam",
+    "is_deepfake": true,
+    "is_scam": true,
+    "ai_watermark_detected": true,
+    "watermark_details": "Google Gemini 4-pointed diamond sparkle watermark detected in Bottom Right (Confidence: 89.1%). Conclusive 100% confirmation of synthetic AI generation.",
+    "vision_score": 1.0,
+    "audio_score": 0.96,
+    "composite_risk": 0.54,
+    "content_intent": "scam_promotion",
+    "speaker_stance": "promoting",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [],
+      "credential_misrep": [],
+      "specific_returns": [
+        "This stock guarantees return of more than 40%"
+      ]
+    },
+    "transcript_preview": "Hello, I am calling regarding urgent stock sell. This stock guarantees return of more than 40%. Call now.",
+    "elapsed_sec": 39.91,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-08-27 at 10.23.37 PM.mp4",
+    "category": "AI Deepfake Video",
+    "verdict": "Critical: Deepfake + Scam",
+    "is_deepfake": true,
+    "is_scam": true,
+    "ai_watermark_detected": true,
+    "watermark_details": "Google Gemini 4-pointed diamond sparkle watermark detected in Bottom Right (Confidence: 81.8%). Conclusive 100% confirmation of synthetic AI generation.",
+    "vision_score": 1.0,
+    "audio_score": 0.96,
+    "composite_risk": 0.6525,
+    "content_intent": "scam_promotion",
+    "speaker_stance": "promoting",
+    "evidence_quotes": {
+      "implied_returns": [
+        "big things are coming"
+      ],
+      "paywall_push": [
+        "Check the link in my bio."
+      ],
+      "credential_misrep": [
+        "can't give direct advice here, but"
+      ],
+      "specific_returns": [
+        "my inner circle is heavily buying this stock",
+        "big things are coming"
+      ]
+    },
+    "transcript_preview": "Look, I can't give direct advice here, but my inner circle is heavily buying this stock. Let's just say big things are coming. Check the link in my bi...",
+    "elapsed_sec": 31.44,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-08-27 at 10.29.55 PM.mp4",
+    "category": "AI Deepfake Video",
+    "verdict": "Warning: Deepfake Detected",
+    "is_deepfake": true,
+    "is_scam": false,
+    "ai_watermark_detected": true,
+    "watermark_details": "Google Gemini 4-pointed diamond sparkle watermark detected in Bottom Right (Confidence: 70.1%). Conclusive 100% confirmation of synthetic AI generation.",
+    "vision_score": 1.0,
+    "audio_score": 0.96,
+    "composite_risk": 0.0,
+    "content_intent": "neutral_discussion",
+    "speaker_stance": "neutral",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [],
+      "credential_misrep": [],
+      "specific_returns": []
+    },
+    "transcript_preview": "At Nexus, we believe in growth. We focus on long-term value. Our process is built on research, invest with discipline today, partner with Nexus.",
+    "elapsed_sec": 27.06,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-10-19 at 1.05.28 PM.mp4",
+    "category": "AI Deepfake Video",
+    "verdict": "Critical: Deepfake + Scam",
+    "is_deepfake": true,
+    "is_scam": true,
+    "ai_watermark_detected": true,
+    "watermark_details": "Google Gemini 4-pointed diamond sparkle watermark detected in Bottom Right (Confidence: 73.3%). Conclusive 100% confirmation of synthetic AI generation.",
+    "vision_score": 1.0,
+    "audio_score": 0.96,
+    "composite_risk": 0.585,
+    "content_intent": "scam_promotion",
+    "speaker_stance": "promoting",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [],
+      "credential_misrep": [],
+      "specific_returns": [
+        "You should definitely buy shares of alpha limited."
+      ]
+    },
+    "transcript_preview": "Yeah, the charts are looking really strong today. Honestly, you should definitely buy shares of alpha limited. I'm hearing something big is about to h...",
+    "elapsed_sec": 26.8,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-10-19 at 12.50.20 PM.mp4",
+    "category": "AI Deepfake Video",
+    "verdict": "Warning: Deepfake Detected",
+    "is_deepfake": true,
+    "is_scam": false,
+    "ai_watermark_detected": false,
+    "watermark_details": null,
+    "vision_score": 0.9206,
+    "audio_score": 0.0,
+    "composite_risk": 0.0,
+    "content_intent": "neutral_discussion",
+    "speaker_stance": "neutral",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [],
+      "credential_misrep": [],
+      "specific_returns": []
+    },
+    "transcript_preview": "",
+    "elapsed_sec": 2.58,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-08-26 at 4.05.01 PM.mp4",
+    "category": "Human Scam Video",
+    "verdict": "Critical: Deepfake + Scam",
+    "is_deepfake": true,
+    "is_scam": true,
+    "ai_watermark_detected": false,
+    "watermark_details": null,
+    "vision_score": 0.0328,
+    "audio_score": 0.6696,
+    "composite_risk": 0.5,
+    "content_intent": "scam_promotion",
+    "speaker_stance": "promoting",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [
+        "Tap below to secure your syndicate slot"
+      ],
+      "credential_misrep": [],
+      "specific_returns": [
+        "We are onboarding 35 private clients for a pre-IPO dark pool allocation."
+      ]
+    },
+    "transcript_preview": "Our SE registered desk is executing a block deal accumulation phase ahead of upcoming NSE quarterly rebalancing. We are onboarding 35 private clients ...",
+    "elapsed_sec": 34.2,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-08-26 at 4.05.39 PM.mp4",
+    "category": "Human Scam Video",
+    "verdict": "Critical: Deepfake + Scam",
+    "is_deepfake": true,
+    "is_scam": true,
+    "ai_watermark_detected": false,
+    "watermark_details": null,
+    "vision_score": 0.0041,
+    "audio_score": 0.65,
+    "composite_risk": 0.5,
+    "content_intent": "scam_promotion",
+    "speaker_stance": "promoting",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [
+        "DM to mirror to automated execution"
+      ],
+      "credential_misrep": [],
+      "specific_returns": [
+        "audited 94.2 monthly consistency across 36 cycles"
+      ]
+    },
+    "transcript_preview": "Our quantitative desk uses proprietary delta-neutral arbitrage to systematically eliminate market downside. We have delivered an audited 94.2 monthly ...",
+    "elapsed_sec": 31.27,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-08-26 at 4.05.46 PM.mp4",
+    "category": "Human Non-Scam Video",
+    "verdict": "Safe",
+    "is_deepfake": false,
+    "is_scam": false,
+    "ai_watermark_detected": false,
+    "watermark_details": null,
+    "vision_score": 0.0135,
+    "audio_score": 0.0101,
+    "composite_risk": 0.0,
+    "content_intent": "neutral_discussion",
+    "speaker_stance": "neutral",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [],
+      "credential_misrep": [],
+      "specific_returns": []
+    },
+    "transcript_preview": "Analyzing recent macroeconomic indicators, banking sector capital adequacy ratio remains stable year over year. This report is strictly for informatio...",
+    "elapsed_sec": 35.57,
+    "status": "success"
+  },
+  {
+    "filename": "WhatsApp Video 2026-08-26 at 4.06.22 PM.mp4",
+    "category": "Human Non-Scam Video",
+    "verdict": "Warning: Deepfake Detected",
+    "is_deepfake": true,
+    "is_scam": false,
+    "ai_watermark_detected": false,
+    "watermark_details": null,
+    "vision_score": 0.0316,
+    "audio_score": 0.6,
+    "composite_risk": 0.0,
+    "content_intent": "neutral_discussion",
+    "speaker_stance": "neutral",
+    "evidence_quotes": {
+      "implied_returns": [],
+      "paywall_push": [],
+      "credential_misrep": [],
+      "specific_returns": []
+    },
+    "transcript_preview": "In this educational overview, we review historical Q3 sectoral trend for IT equities. Remember, past performance is not indicative of future returns a...",
+    "elapsed_sec": 31.34,
+    "status": "success"
+  }
+]
