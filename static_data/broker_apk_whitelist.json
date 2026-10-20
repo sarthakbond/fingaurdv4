@@ -1,8 +1,8 @@
 [
   {
     "broker": "Zerodha",
-    "package_names": ["com.zerodha.kite3"],
-    "domains": ["zerodha.com", "kite.zerodha.com"],
+    "package_names": ["com.zerodha.kite3", "com.zerodha.coin"],
+    "domains": ["zerodha.com", "kite.zerodha.com", "coin.zerodha.com"],
     "app_store_ids": {"android": "com.zerodha.kite3", "ios": "1368323099"}
   },
   {
@@ -15,11 +15,11 @@
     "broker": "Angel One",
     "package_names": ["com.msf.kite", "com.angelbroking.angelone"],
     "domains": ["angelone.in", "angelbroking.com"],
-    "app_store_ids": {"android": "com.msf.kite"}
+    "app_store_ids": {"android": "com.msf.kite", "ios": "1060530986"}
   },
   {
     "broker": "Upstox",
-    "package_names": ["in.upstox.client"],
+    "package_names": ["in.upstox.client", "com.rksv.upstox"],
     "domains": ["upstox.com"],
     "app_store_ids": {"android": "in.upstox.client", "ios": "1344565615"}
   },
@@ -27,84 +27,252 @@
     "broker": "5paisa",
     "package_names": ["com.fivepaisa.trade"],
     "domains": ["5paisa.com"],
-    "app_store_ids": {"android": "com.fivepaisa.trade"}
+    "app_store_ids": {"android": "com.fivepaisa.trade", "ios": "1157833075"}
   },
   {
     "broker": "ICICI Direct",
     "package_names": ["com.icicisecurities.isecurities"],
     "domains": ["icicidirect.com", "icicisecurities.com"],
-    "app_store_ids": {"android": "com.icicisecurities.isecurities"}
+    "app_store_ids": {"android": "com.icicisecurities.isecurities", "ios": "1537233845"}
   },
   {
     "broker": "HDFC Securities",
-    "package_names": ["com.hdfcsec.hdfcsky"],
-    "domains": ["hdfcsec.com"],
-    "app_store_ids": {"android": "com.hdfcsec.hdfcsky"}
+    "package_names": ["com.hdfcsec.hdfcsky", "com.hdfcsec.trade"],
+    "domains": ["hdfcsec.com", "hdfcsky.com"],
+    "app_store_ids": {"android": "com.hdfcsec.hdfcsky", "ios": "1665487739"}
   },
   {
     "broker": "Kotak Securities",
-    "package_names": ["com.kotak.securities.neo"],
-    "domains": ["kotaksecurities.com"],
-    "app_store_ids": {"android": "com.kotak.securities.neo"}
+    "package_names": ["com.kotak.securities.neo", "com.msf.kotak"],
+    "domains": ["kotaksecurities.com", "kotakneo.com"],
+    "app_store_ids": {"android": "com.kotak.securities.neo", "ios": "1589255651"}
   },
   {
     "broker": "Sharekhan",
-    "package_names": ["com.sharekhan.android"],
-    "domains": ["sharekhan.com"],
-    "app_store_ids": {"android": "com.sharekhan.android"}
+    "package_names": ["com.sharekhan.android", "com.sharekhan.espresso"],
+    "domains": ["sharekhan.com", "myespresso.com"],
+    "app_store_ids": {"android": "com.sharekhan.android", "ios": "469046636"}
   },
   {
     "broker": "Paytm Money",
     "package_names": ["com.paytmmoney.invest"],
     "domains": ["paytmmoney.com"],
-    "app_store_ids": {"android": "com.paytmmoney.invest"}
+    "app_store_ids": {"android": "com.paytmmoney.invest", "ios": "1344933924"}
   },
   {
     "broker": "Kuvera",
     "package_names": ["com.kuvera.app"],
     "domains": ["kuvera.in"],
-    "app_store_ids": {"android": "com.kuvera.app"}
+    "app_store_ids": {"android": "com.kuvera.app", "ios": "1314546522"}
   },
   {
     "broker": "Dhan",
-    "package_names": ["co.dhan.app"],
+    "package_names": ["co.dhan.app", "co.dhan.options"],
     "domains": ["dhan.co"],
-    "app_store_ids": {"android": "co.dhan.app"}
+    "app_store_ids": {"android": "co.dhan.app", "ios": "1575317778"}
   },
   {
     "broker": "FYERS",
     "package_names": ["com.fyers.tos"],
     "domains": ["fyers.in"],
-    "app_store_ids": {"android": "com.fyers.tos"}
+    "app_store_ids": {"android": "com.fyers.tos", "ios": "1468087920"}
   },
   {
     "broker": "Motilal Oswal",
-    "package_names": ["com.msfl.mosttrade"],
+    "package_names": ["com.msfl.mosttrade", "com.motilaloswal.moinvestor"],
     "domains": ["motilaloswal.com"],
-    "app_store_ids": {"android": "com.msfl.mosttrade"}
+    "app_store_ids": {"android": "com.msfl.mosttrade", "ios": "1086029272"}
   },
   {
     "broker": "Smallcase",
     "package_names": ["com.smallcase.invest"],
     "domains": ["smallcase.com"],
-    "app_store_ids": {"android": "com.smallcase.invest"}
+    "app_store_ids": {"android": "com.smallcase.invest", "ios": "1449767215"}
   },
   {
     "broker": "ET Money",
     "package_names": ["com.etmoney.app"],
     "domains": ["etmoney.com"],
-    "app_store_ids": {"android": "com.etmoney.app"}
+    "app_store_ids": {"android": "com.etmoney.app", "ios": "1083818306"}
   },
   {
     "broker": "SBI Securities",
     "package_names": ["com.sbismart.android"],
-    "domains": ["sbismart.in"],
-    "app_store_ids": {"android": "com.sbismart.android"}
+    "domains": ["sbismart.in", "sbisecurities.in"],
+    "app_store_ids": {"android": "com.sbismart.android", "ios": "1564817743"}
   },
   {
     "broker": "Axis Direct",
-    "package_names": ["com.axis.mobile.axisdirect"],
+    "package_names": ["com.axis.mobile.axisdirect", "com.axisdirect.ring"],
     "domains": ["axisdirect.in"],
-    "app_store_ids": {"android": "com.axis.mobile.axisdirect"}
+    "app_store_ids": {"android": "com.axis.mobile.axisdirect", "ios": "1574895521"}
+  },
+  {
+    "broker": "Share.Market by PhonePe",
+    "package_names": ["com.phonepe.share.market"],
+    "domains": ["share.market", "phonepe.com"],
+    "app_store_ids": {"android": "com.phonepe.share.market"}
+  },
+  {
+    "broker": "Bajaj Broking",
+    "package_names": ["com.bajajsec.broking", "com.bajajfinserv.markets"],
+    "domains": ["bajajbroking.in", "bajajfinservsecurities.in"],
+    "app_store_ids": {"android": "com.bajajsec.broking"}
+  },
+  {
+    "broker": "Mirae Asset m.Stock",
+    "package_names": ["com.miraeasset.mstock"],
+    "domains": ["mstock.com", "miraeassetcm.com"],
+    "app_store_ids": {"android": "com.miraeasset.mstock"}
+  },
+  {
+    "broker": "Shoonya by Finvasia",
+    "package_names": ["com.finvasia.shoonya"],
+    "domains": ["shoonya.com", "finvasia.com"],
+    "app_store_ids": {"android": "com.finvasia.shoonya"}
+  },
+  {
+    "broker": "BlinkX by JM Financial",
+    "package_names": ["com.jm.blinkx"],
+    "domains": ["blinkx.in", "jmfinancialservices.com"],
+    "app_store_ids": {"android": "com.jm.blinkx"}
+  },
+  {
+    "broker": "INDmoney",
+    "package_names": ["com.finzoom.indmoney"],
+    "domains": ["indmoney.com"],
+    "app_store_ids": {"android": "com.finzoom.indmoney", "ios": "1449838421"}
+  },
+  {
+    "broker": "Alice Blue ANT",
+    "package_names": ["com.aliceblue.antmobi"],
+    "domains": ["aliceblueonline.com"],
+    "app_store_ids": {"android": "com.aliceblue.antmobi"}
+  },
+  {
+    "broker": "IIFL Markets",
+    "package_names": ["com.indiainfoline"],
+    "domains": ["indiainfoline.com", "iiflsecurities.com"],
+    "app_store_ids": {"android": "com.indiainfoline"}
+  },
+  {
+    "broker": "Nuvama Wealth",
+    "package_names": ["com.nuvama.wealth", "com.msf.edelweiss"],
+    "domains": ["nuvamawealth.com", "edelweiss.in"],
+    "app_store_ids": {"android": "com.nuvama.wealth"}
+  },
+  {
+    "broker": "SMC ACE",
+    "package_names": ["com.smc.smcace"],
+    "domains": ["smcindiaonline.com", "stoxkart.com"],
+    "app_store_ids": {"android": "com.smc.smcace"}
+  },
+  {
+    "broker": "Choice FinX",
+    "package_names": ["com.choicebroking.choicefinx"],
+    "domains": ["choiceindia.com"],
+    "app_store_ids": {"android": "com.choicebroking.choicefinx"}
+  },
+  {
+    "broker": "Geojit SELFIE",
+    "package_names": ["com.geojit.selfie"],
+    "domains": ["geojit.com"],
+    "app_store_ids": {"android": "com.geojit.selfie"}
+  },
+  {
+    "broker": "SAMCO StockNote",
+    "package_names": ["com.samco.stocknote"],
+    "domains": ["samco.in"],
+    "app_store_ids": {"android": "com.samco.stocknote"}
+  },
+  {
+    "broker": "Flattrade",
+    "package_names": ["com.flattrade.app"],
+    "domains": ["flattrade.in"],
+    "app_store_ids": {"android": "com.flattrade.app"}
+  },
+  {
+    "broker": "ProStocks",
+    "package_names": ["com.prostocks.mobile"],
+    "domains": ["prostocks.com"],
+    "app_store_ids": {"android": "com.prostocks.mobile"}
+  },
+  {
+    "broker": "Tradejini CubePlus",
+    "package_names": ["com.tradejini.cubeplus"],
+    "domains": ["tradejini.com"],
+    "app_store_ids": {"android": "com.tradejini.cubeplus"}
+  },
+  {
+    "broker": "Tradebulls Touch",
+    "package_names": ["com.tradebulls.touch"],
+    "domains": ["tradebulls.in"],
+    "app_store_ids": {"android": "com.tradebulls.touch"}
+  },
+  {
+    "broker": "Mastertrust",
+    "package_names": ["com.mastertrust.mastermobile"],
+    "domains": ["mastertrust.co.in"],
+    "app_store_ids": {"android": "com.mastertrust.mastermobile"}
+  },
+  {
+    "broker": "Religare Dynami",
+    "package_names": ["com.religare.dynami"],
+    "domains": ["religareonline.com"],
+    "app_store_ids": {"android": "com.religare.dynami"}
+  },
+  {
+    "broker": "Ventura Pointer",
+    "package_names": ["com.ventura.pointer"],
+    "domains": ["ventura1.com"],
+    "app_store_ids": {"android": "com.ventura.pointer"}
+  },
+  {
+    "broker": "Wint Wealth",
+    "package_names": ["com.wintwealth.app"],
+    "domains": ["wintwealth.com"],
+    "app_store_ids": {"android": "com.wintwealth.app"}
+  },
+  {
+    "broker": "Scripbox",
+    "package_names": ["com.scripbox.app"],
+    "domains": ["scripbox.com"],
+    "app_store_ids": {"android": "com.scripbox.app"}
+  },
+  {
+    "broker": "Dezerv",
+    "package_names": ["co.dezerv.app"],
+    "domains": ["dezerv.in"],
+    "app_store_ids": {"android": "co.dezerv.app"}
+  },
+  {
+    "broker": "Navi",
+    "package_names": ["com.navi.app"],
+    "domains": ["navi.com"],
+    "app_store_ids": {"android": "com.navi.app"}
+  },
+  {
+    "broker": "Stable Money",
+    "package_names": ["com.stablemoney.app"],
+    "domains": ["stablemoney.in"],
+    "app_store_ids": {"android": "com.stablemoney.app"}
+  },
+  {
+    "broker": "Cube Wealth",
+    "package_names": ["com.cubewealth.app"],
+    "domains": ["bankoncube.com"],
+    "app_store_ids": {"android": "com.cubewealth.app"}
+  },
+  {
+    "broker": "CRED",
+    "package_names": ["com.dreamplug.androidapp"],
+    "domains": ["cred.club"],
+    "app_store_ids": {"android": "com.dreamplug.androidapp"}
+  },
+  {
+    "broker": "JioFinance",
+    "package_names": ["com.jiofinance.app"],
+    "domains": ["jiofinance.in", "jfs.in"],
+    "app_store_ids": {"android": "com.jiofinance.app"}
   }
 ]

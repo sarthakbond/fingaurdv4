@@ -9,13 +9,13 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request
+from fastapi import FastAPI, File, UploadFile, BackgroundTasks, HTTPException, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
-import shutil, os, uuid, re
+import shutil, os, uuid, re, json
 import numpy as np
 
 from src.config import settings, get_threshold, get_vision_threshold, get_stage_config
@@ -935,7 +935,6 @@ async def scan_url(req: UrlScanRequest):
 @app.get("/api/registry/status")
 async def registry_status():
     """Returns SEBI registry metadata: record count, last sync timestamp, breakdown by type."""
-    import json as _json
     registry_path = os.path.join("static_data", "sebi_registry.json")
     sync_log_path = os.path.join("static_data", "sebi_sync_log.json")
 
@@ -943,7 +942,7 @@ async def registry_status():
     by_type: Dict[str, int] = {}
     if os.path.exists(registry_path):
         with open(registry_path, "r", encoding="utf-8") as f:
-            registry = _json.load(f)
+            registry = json.load(f)
         total_records = len(registry)
         for entry in registry:
             t = entry.get("type", "Unknown")
@@ -952,7 +951,7 @@ async def registry_status():
     sync_log: Dict[str, Any] = {}
     if os.path.exists(sync_log_path):
         with open(sync_log_path, "r", encoding="utf-8") as f:
-            sync_log = _json.load(f)
+            sync_log = json.load(f)
 
     return {
         "total_records": total_records,
@@ -964,6 +963,58 @@ async def registry_status():
     }
 
 
+# ── Registry Instant Search ──────────────────────────────────────────────────
+@app.get("/api/registry/search")
+async def registry_search(q: str = Query(..., min_length=2)):
+    """Search SEBI registry by entity name, registration number, alias, or contact person."""
+    registry_path = os.path.join("static_data", "sebi_registry.json")
+    if not os.path.exists(registry_path):
+        return {"query": q, "total_matches": 0, "results": []}
+
+    try:
+        with open(registry_path, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read registry: {e}")
+
+
+    query_clean = q.strip()
+    query_upper = query_clean.upper().replace(" ", "")
+    query_lower = query_clean.lower()
+
+    exact_regs = []
+    name_matches = []
+
+    for entry in registry:
+        reg_no = entry.get("registration_number", "").upper().replace(" ", "")
+        name = entry.get("name", "")
+        contact = entry.get("contact_person", "") or ""
+        aliases = entry.get("aliases", [])
+
+        # Priority 1: Direct registration number match
+        if query_upper in reg_no:
+            exact_regs.append(entry)
+            continue
+
+        # Priority 2: Direct match in company name or contact person
+        if query_lower in name.lower() or (contact and query_lower in contact.lower()):
+            name_matches.append(entry)
+            continue
+
+        # Priority 3: Match in aliases
+        if any(query_lower in str(a).lower() for a in aliases):
+            name_matches.append(entry)
+
+    total_matches = len(exact_regs) + len(name_matches)
+    top_results = (exact_regs + name_matches)[:25]
+
+    return {
+        "query": q,
+        "total_matches": total_matches,
+        "results": top_results
+    }
+
+
 # ── Admin: Trigger Registry Sync ─────────────────────────────────────────────
 @app.post("/api/admin/sync-registry")
 async def trigger_registry_sync(background_tasks: BackgroundTasks):
@@ -971,7 +1022,7 @@ async def trigger_registry_sync(background_tasks: BackgroundTasks):
     def _run_sync():
         import subprocess
         result = subprocess.run(
-            [".venv/Scripts/python", "scripts/sync_sebi_registry.py"],
+            [".venv/Scripts/python", "scripts/sync_sebi_live_registry.py"],
             capture_output=True, text=True, cwd=os.getcwd()
         )
         print(f"[SYNC] SEBI sync completed. Return code: {result.returncode}")
@@ -981,7 +1032,8 @@ async def trigger_registry_sync(background_tasks: BackgroundTasks):
             print(f"[SYNC STDERR] {result.stderr}")
 
     background_tasks.add_task(_run_sync)
-    return {"status": "sync_queued", "message": "SEBI registry sync started in background"}
+    return {"status": "sync_queued", "message": "SEBI registry live sync started in background"}
+
 
 
 # ── Health check ────────────────────────────────────────────────────

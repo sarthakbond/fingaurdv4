@@ -1,0 +1,23 @@
+{
+  "last_sync": "2026-10-20T06:24:18Z",
+  "last_sync_result": "Success: Extracted 4,624 live records across 5 intermediary categories (IA, RA, PMS, MF, Broker) directly from SEBI portal.",
+  "sync_count": 1,
+  "total_records": 4709,
+  "breakdown": {
+    "Investment Adviser": 1053,
+    "Research Analyst": 2295,
+    "Portfolio Manager": 538,
+    "Mutual Fund": 61,
+    "Stock Broker": 725,
+    "Depository Participant": 37
+  },
+  "history": [
+    {
+      "timestamp": "2026-10-20T06:24:18Z",
+      "status": "success",
+      "records_fetched": 4624,
+      "total_database": 4709,
+      "source": "https://www.sebi.gov.in/sebiweb/ajax/other/getintmfpiinfo.jsp"
+    }
+  ]
+}

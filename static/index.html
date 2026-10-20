@@ -9,24 +9,50 @@
 
 <!-- Base API Configuration (Overridable via environment) -->
 <meta name="finguard-api-base" content="">
+<meta name="color-scheme" content="dark light">
 
-<!-- Classic Banking Software Design System -->
-<link rel="stylesheet" href="/static/css/banking.css">
+<!-- Modern High-Tech Typography: Plus Jakarta Sans for UI + JetBrains Mono for Forensic Telemetry -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Modern Dual-Theme Design System -->
+<link rel="stylesheet" href="/static/css/banking.css?v=4.1.0">
+
+<!-- Anti-FOUC Theme Pre-initialization -->
+<script>
+  (function() {
+    try {
+      var stored = localStorage.getItem("fg-theme");
+      if (stored === "light" || stored === "dark") {
+        document.documentElement.setAttribute("data-theme", stored);
+      } else {
+        var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.documentElement.setAttribute("data-theme", prefersDark ? "dark" : "light");
+      }
+    } catch(e) {}
+  })();
+</script>
 
 <!-- Standard Institutional Favicon -->
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%230E4D34'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310B981'%3E%3Cpath d='M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z'/%3E%3C/svg%3E">
 </head>
 <body>
 
 <!-- Top Security & System Banner -->
 <div class="fg-top-stripe">
   <div class="fg-container fg-top-stripe__inner">
-    <span>Institutional Security Verification & Fraud Screening · Version 4.0</span>
+    <span>Institutional Security Verification & Fraud Screening · Version 4.1</span>
+    <span class="fg-top-stripe__db" id="top-stripe-db" title="Synchronized live from SEBI official directory">
+      <span class="fg-pulse-dot" aria-hidden="true"></span>
+      <b id="top-db-count">4,709</b> Verified SEBI Registrations Active
+    </span>
     <span>Decision Support System · Not Official Legal Advice</span>
   </div>
 </div>
 
-<!-- Main Banking Navigation Header -->
+
+<!-- Main Navigation Header -->
 <header class="fg-header" id="nav-header">
   <div class="fg-container fg-header__inner">
     <button class="fg-brand" type="button" data-route="/" aria-label="FinGuard — Home">
@@ -47,6 +73,29 @@
     </nav>
 
     <div class="fg-header__actions">
+      <!-- Theme Switcher: Cyber Dark HUD vs Polished Fintech Light -->
+      <button class="fg-theme-toggle" id="theme-toggle" type="button" aria-label="Switch theme mode" title="Switch between Cyber Dark HUD and Polished Fintech Light">
+        <span class="fg-theme-toggle__icon fg-theme-toggle__icon--moon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </span>
+        <span class="fg-theme-toggle__icon fg-theme-toggle__icon--sun" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        </span>
+        <span class="fg-theme-toggle__text" id="theme-toggle-text">Dark HUD</span>
+      </button>
+
       <div class="fg-status-pill" id="health" data-state="checking" title="Backend service status">
         <span class="fg-status-pill__dot"></span>
         <span id="health-text">Service checking</span>
@@ -137,8 +186,77 @@
     </div>
   </section>
 
+  <!-- ══════════════════════════════════════════════════════════════════════
+       OFFICIAL SEBI REGISTRY LIVE DATABASE & INSTANT SEARCH
+       ═══════════════════════════════════════════════════════════════════ -->
+  <section class="fg-section fg-registry-showcase" id="registry-directory-section">
+    <div class="fg-container">
+      <div class="fg-registry-hero-card">
+        <div class="fg-registry-hero-header">
+          <div class="fg-registry-hero-title-wrap">
+            <div class="fg-registry-live-badge">
+              <span class="fg-pulse-dot" aria-hidden="true"></span>
+              SEBI Official Directory Synchronized
+            </div>
+            <h2 class="fg-registry-hero-title">Official SEBI Intermediary Database</h2>
+            <p class="fg-registry-hero-desc">
+              FinGuard maintains an indexed offline database of <b id="stat-total-records">4,709</b> verified market intermediaries and individuals directly synchronized from SEBI (<a href="https://www.sebi.gov.in" target="_blank" rel="noopener noreferrer" class="fg-link">sebi.gov.in</a>). Search any influencer, company, or individual adviser below for instant verification.
+            </p>
+          </div>
+
+          <!-- Live Metric Stats Breakdown -->
+          <div class="fg-registry-stats-grid" id="registry-stats-grid">
+            <div class="fg-stat-box">
+              <div class="fg-stat-box__val" id="stat-ra">2,305</div>
+              <div class="fg-stat-box__lbl">Research Analysts (RA)</div>
+            </div>
+            <div class="fg-stat-box">
+              <div class="fg-stat-box__val" id="stat-ria">1,048</div>
+              <div class="fg-stat-box__lbl">Investment Advisers (RIA)</div>
+            </div>
+            <div class="fg-stat-box">
+              <div class="fg-stat-box__val" id="stat-brokers">673</div>
+              <div class="fg-stat-box__lbl">Stock Brokers</div>
+            </div>
+            <div class="fg-stat-box">
+              <div class="fg-stat-box__val" id="stat-pms">538</div>
+              <div class="fg-stat-box__lbl">Portfolio Managers (PMS)</div>
+            </div>
+            <div class="fg-stat-box">
+              <div class="fg-stat-box__val" id="stat-mf">49</div>
+              <div class="fg-stat-box__lbl">Mutual Funds / AMCs</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instant Verification Search Box -->
+        <div class="fg-registry-search-wrap">
+          <div class="fg-registry-search-bar">
+            <span class="fg-search-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </span>
+            <input type="text" id="registry-search-input" class="fg-registry-search-input" placeholder="Search by Adviser Name, Contact Person, Broker, or SEBI ID (e.g. Mayank, INA000016171, Zerodha, Angel One, Kukreja)..." autocomplete="off" aria-label="Search SEBI intermediary database">
+            <button class="fg-btn fg-btn--sm" id="registry-search-btn" type="button">Verify Now</button>
+          </div>
+
+          <div class="fg-registry-search-hint">
+            <span class="fg-registry-search-quick">Quick queries: <button type="button" class="fg-quick-search-tag" data-query="Zerodha">Zerodha</button> <button type="button" class="fg-quick-search-tag" data-query="Mayank">Mayank</button> <button type="button" class="fg-quick-search-tag" data-query="INA000016171">INA000016171</button> <button type="button" class="fg-quick-search-tag" data-query="Angel One">Angel One</button> <button type="button" class="fg-quick-search-tag" data-query="Groww">Groww</button></span>
+            <span id="registry-search-status" class="fg-registry-search-status"></span>
+          </div>
+
+          <!-- Search Results Container -->
+          <div class="fg-registry-results" id="registry-results-container" hidden></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Supported Inspection Capabilities -->
   <section class="fg-section">
+
     <div class="fg-container">
       <div class="fg-section-header">
         <span class="fg-section-header__eyebrow">Coverage</span>
@@ -377,10 +495,11 @@
         </div>
 
         <div class="fg-card">
-          <h3 class="fg-card__title">5. Registry Database Verification</h3>
-          <p class="fg-card__text">Cross-checks adviser names and registration numbers against the official SEBI registry snapshot, identifying verified entities and active impersonation.</p>
+          <h3 class="fg-card__title">5. Registry Database Verification (4,709 Live Records)</h3>
+          <p class="fg-card__text">Cross-checks adviser names, contact persons, and registration numbers against our synchronized database of 4,709 official SEBI intermediaries (RAs, RIAs, Brokers, and PMS managers).</p>
           <span class="fg-card__tag">Stage 06 · Registry</span>
         </div>
+
 
         <div class="fg-card">
           <h3 class="fg-card__title">6. On-Screen OCR Text Extraction</h3>

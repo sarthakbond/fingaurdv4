@@ -10,7 +10,8 @@
    ========================================================================= */
 
 import { $, $$, esc, fmtBytes, fmtClock, fmtScore, fmtStamp, reducedMotion } from './dom.js';
-import { LIMITS, complaintUrl, health, startRun, validateFile, validateText, validateUrl } from './api.js';
+import { LIMITS, complaintUrl, health, startRun, validateFile, validateText, validateUrl, registryStatus, registrySearch } from './api.js';
+
 import { planFor } from './stages.js';
 import { toViewModel } from './model.js';
 
@@ -786,12 +787,246 @@ function renderReport(vm) {
   }
 }
 
+/* ── Theme Switcher (Cyber Dark HUD <-> Polished Fintech Light) ───────────── */
+
+function getPreferredTheme() {
+  try {
+    const stored = localStorage.getItem('fg-theme');
+    if (stored === 'light' || stored === 'dark') {
+      return stored;
+    }
+  } catch (e) {}
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
+  if (metaColorScheme) {
+    metaColorScheme.content = theme === 'dark' ? 'dark' : 'light';
+  }
+  const label = $('#theme-toggle-text');
+  if (label) {
+    label.textContent = theme === 'dark' ? 'Dark HUD' : 'Light Mode';
+  }
+  const toggleBtn = $('#theme-toggle');
+  if (toggleBtn) {
+    toggleBtn.setAttribute('title', theme === 'dark' ? 'Switch to Polished Fintech Light' : 'Switch to Cyber Dark HUD');
+    toggleBtn.setAttribute('aria-label', `Active theme: ${theme === 'dark' ? 'Cyber Dark HUD' : 'Polished Light'}. Click to toggle.`);
+  }
+}
+
+function initThemeToggle() {
+  const currentTheme = getPreferredTheme();
+  applyTheme(currentTheme);
+
+  const toggleBtn = $('#theme-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const activeTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('fg-theme', newTheme);
+      } catch (e) {}
+      applyTheme(newTheme);
+    });
+  }
+
+  // Multi-tab synchronization
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'fg-theme' && (e.newValue === 'light' || e.newValue === 'dark')) {
+      applyTheme(e.newValue);
+    }
+  });
+
+  // System preference change listener
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      try {
+        if (!localStorage.getItem('fg-theme')) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      } catch (err) {}
+    });
+  }
+}
+
+/* ── SEBI Registry Showcase & Instant Live Search ───────────────────────── */
+
+function initRegistryShowcase() {
+  const topDbCount = $('#top-db-count');
+  const statTotal = $('#stat-total-records');
+  const statRa = $('#stat-ra');
+  const statRia = $('#stat-ria');
+  const statBrokers = $('#stat-brokers');
+  const statPms = $('#stat-pms');
+  const statMf = $('#stat-mf');
+
+  // Load live statistics from backend
+  registryStatus()
+    .then((data) => {
+      if (!data) return;
+      const total = data.total_records || 4709;
+      if (topDbCount) topDbCount.textContent = total.toLocaleString();
+      if (statTotal) statTotal.textContent = total.toLocaleString();
+
+      const b = data.registry_breakdown || {};
+      const raCount = (b['Research Analyst'] || 0) + (b['Research Analyst / PMS'] || 0);
+      const riaCount = (b['Investment Adviser'] || 0) + (b['Investment Advisor'] || 0);
+      const brokerCount = (b['Stock Broker'] || 0) + (b['Stock Broker / RA'] || 0);
+      const pmsCount = (b['Portfolio Manager'] || 0);
+      const mfCount = (b['Mutual Fund'] || 0) + (b['Mutual Fund Asset Management'] || 0);
+
+      if (statRa && raCount) statRa.textContent = raCount.toLocaleString();
+      if (statRia && riaCount) statRia.textContent = riaCount.toLocaleString();
+      if (statBrokers && brokerCount) statBrokers.textContent = brokerCount.toLocaleString();
+      if (statPms && pmsCount) statPms.textContent = pmsCount.toLocaleString();
+      if (statMf && mfCount) statMf.textContent = mfCount.toLocaleString();
+    })
+    .catch((err) => {
+      console.warn('Could not load live registry status:', err);
+    });
+
+  // Search input & button
+  const searchInput = $('#registry-search-input');
+  const searchBtn = $('#registry-search-btn');
+  const resultsContainer = $('#registry-results-container');
+  const searchStatus = $('#registry-search-status');
+
+  if (!searchInput || !resultsContainer) return;
+
+  let debounceTimer = null;
+
+  async function performSearch(query) {
+    const q = (query || '').trim();
+    if (q.length < 2) {
+      resultsContainer.hidden = true;
+      resultsContainer.innerHTML = '';
+      if (searchStatus) searchStatus.textContent = '';
+      return;
+    }
+
+    if (searchStatus) {
+      searchStatus.textContent = 'Searching official SEBI database...';
+      searchStatus.className = 'fg-registry-search-status fg-registry-search-status--loading';
+    }
+
+    try {
+      const data = await registrySearch(q);
+      const results = data.results || [];
+      const total = data.total_matches || results.length;
+
+      if (results.length === 0) {
+        if (searchStatus) {
+          searchStatus.textContent = `No verified SEBI registration found matching "${q}".`;
+          searchStatus.className = 'fg-registry-search-status fg-registry-search-status--warn';
+        }
+        resultsContainer.hidden = false;
+        resultsContainer.innerHTML = `
+          <div class="fg-registry-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <b>No matching SEBI registration found for "${esc(q)}"</b>
+              <p>This entity or person is not found in the verified SEBI registry. If they are offering investment advice or soliciting funds, exercise extreme caution.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (searchStatus) {
+        searchStatus.textContent = `Found ${total.toLocaleString()} verified match${total === 1 ? '' : 'es'}`;
+        searchStatus.className = 'fg-registry-search-status fg-registry-search-status--ok';
+      }
+
+      resultsContainer.hidden = false;
+      resultsContainer.innerHTML = `
+        <div class="fg-registry-results-grid">
+          ${results.map((rec) => {
+            const cat = (rec.type || '').toLowerCase();
+            const badgeType = cat.includes('adviser') ? 'ria' : cat.includes('analyst') ? 'ra' : cat.includes('broker') ? 'broker' : 'default';
+            return `
+              <div class="fg-reg-card">
+                <div class="fg-reg-card__top">
+                  <span class="fg-reg-card__badge fg-reg-card__badge--${badgeType}">
+                    ${esc(rec.type || 'Intermediary')}
+                  </span>
+                  <span class="fg-reg-card__status">
+                    <span class="fg-pulse-dot" aria-hidden="true"></span> ${esc(rec.status || 'Active')}
+                  </span>
+                </div>
+                <h4 class="fg-reg-card__name">${esc(rec.name)}</h4>
+                <div class="fg-reg-card__regno">
+                  <code>${esc(rec.registration_number)}</code>
+                  <button type="button" class="fg-copy-reg-btn" data-reg="${esc(rec.registration_number)}" title="Copy Registration Number">Copy</button>
+                </div>
+                ${rec.contact_person ? `
+                  <div class="fg-reg-card__contact">
+                    <span class="fg-reg-card__contact-label">Registered Representative:</span>
+                    <b class="fg-reg-card__person">👤 ${esc(rec.contact_person)}</b>
+                  </div>
+                ` : ''}
+                <div class="fg-reg-card__footer">
+                  <span class="fg-reg-card__source">SEBI Official Directory</span>
+                  <a href="https://www.sebi.gov.in/sebiweb/other/OtherAction.do?doRecognisedFpi=yes" target="_blank" rel="noopener noreferrer" class="fg-reg-card__link">Verify on SEBI ↗</a>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      // Copy buttons
+      $$('.fg-copy-reg-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const text = btn.dataset.reg;
+          navigator.clipboard.writeText(text).then(() => {
+            const old = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = old; }, 1500);
+          });
+        });
+      });
+    } catch (err) {
+      if (searchStatus) {
+        searchStatus.textContent = 'Verification search error. Please retry.';
+        searchStatus.className = 'fg-registry-search-status fg-registry-search-status--warn';
+      }
+    }
+  }
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      performSearch(searchInput.value);
+    }, 250);
+  });
+
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      performSearch(searchInput.value);
+    });
+  }
+
+  // Quick query pill buttons
+  $$('.fg-quick-search-tag').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const q = btn.dataset.query;
+      searchInput.value = q;
+      performSearch(q);
+    });
+  });
+}
+
 /* ── Application Initialisation ──────────────────────────────────────────── */
 
 function init() {
+  initThemeToggle();
   bindNavigation();
   monitorHealth();
   setInterval(monitorHealth, 30000);
+  initRegistryShowcase();
 
   // Mode tab switching in workspace
   $$('.fg-tab').forEach((tab) => {
@@ -807,6 +1042,7 @@ function init() {
   // Show starting route
   showRoute(state.route);
 }
+
 
 // Boot on DOM ready
 if (document.readyState === 'loading') {

@@ -119,6 +119,12 @@ export async function registryStatus(signal) {
   return asJson(res);
 }
 
+export async function registrySearch(q, signal) {
+  const res = await fetch(apiUrl(`/api/registry/search?q=${encodeURIComponent(q)}`), { cache: 'no-store', signal });
+  return asJson(res);
+}
+
+
 async function postMultipart(path, file, signal) {
   const form = new FormData();
   form.append('file', file, file.name);
