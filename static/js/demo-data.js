@@ -1,6 +1,6 @@
 export const tools = [
  {id:'video',icon:'▷',type:'VIDEO FORENSICS',title:'Video authenticity',desc:'Explore signals that can help you take a closer look at a suspicious video.',action:'Analyze video',tone:'blue',accept:'video/*'},
- {id:'audio',icon:'♫',type:'AUDIO FORENSICS',title:'Audio deepfake detection',desc:'A demonstration workspace for checking a recording and reviewing sample signals.',action:'Check audio',tone:'green',accept:'audio/*'},
+ {id:'audio',icon:'♫',type:'AUDIO FORENSICS',title:'Audio deepfake detection',desc:'An analysis workspace for checking a recording and reviewing acoustic signals.',action:'Check audio',tone:'green',accept:'audio/*'},
  {id:'apk',icon:'▣',type:'APPLICATION SAFETY',title:'APK security',desc:'Review an application file and learn what permission warnings can look like.',action:'Scan APK',tone:'yellow',accept:'.apk,application/vnd.android.package-archive'},
  {id:'url',icon:'↗',type:'LINK SAFETY',title:'Phishing URL detection',desc:'Inspect a web address for common signs that deserve a second look.',action:'Check URL',tone:'navy'},
  {id:'compliance',icon:'§',type:'CLAIM REVIEW',title:'SEBI & financial compliance',desc:'Explore how a financial claim review could highlight language to verify.',action:'Verify compliance',tone:'blue'}

@@ -667,6 +667,11 @@ h1 em {
   visibility: visible;
   pointer-events: auto;
 }
+.tool-card.past-card:hover {
+  opacity: .95;
+  transform: scale(.97) translateY(-3px);
+  box-shadow: 0 16px 36px rgba(23, 63, 53, 0.14);
+}
 .tool-card::before {
   content: "";
   height: 4px;
