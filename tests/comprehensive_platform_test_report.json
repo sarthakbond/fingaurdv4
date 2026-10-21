@@ -1,0 +1,318 @@
+{
+  "timestamp": "2026-10-20 20:42:49",
+  "duration_seconds": 720.28,
+  "results_summary": {
+    "videos": [
+      {
+        "filename": "sanskar.mp4",
+        "category": "AI Deepfake",
+        "job_id": "609de292-dbd1-4f76-abff-fcb986ee3eb0",
+        "verdict": "Critical: Deepfake + Scam",
+        "risk_score": 1.0,
+        "is_deepfake": true,
+        "is_scam": true,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-08-27 at 10.23.37 PM.mp4",
+        "category": "AI Deepfake",
+        "job_id": "43de171f-89c5-4f99-b7dd-bbb26330402e",
+        "verdict": "Critical: Deepfake + Scam",
+        "risk_score": 1.0,
+        "is_deepfake": true,
+        "is_scam": true,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-08-27 at 10.29.55 PM.mp4",
+        "category": "AI Deepfake",
+        "job_id": "986df5be-7736-4e6f-9674-c60a4744bc30",
+        "verdict": "Warning: Deepfake Detected",
+        "risk_score": 1.0,
+        "is_deepfake": true,
+        "is_scam": false,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-10-19 at 1.05.28 PM.mp4",
+        "category": "AI Deepfake",
+        "job_id": "cfd220d5-6834-49c8-bcdf-1a8b542a2fe8",
+        "verdict": "Critical: Deepfake + Scam",
+        "risk_score": 1.0,
+        "is_deepfake": true,
+        "is_scam": true,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-10-19 at 12.50.20 PM.mp4",
+        "category": "AI Deepfake",
+        "job_id": "b01809b6-da54-4472-b8d3-13bf5fa57ca4",
+        "verdict": "Warning: Deepfake Detected",
+        "risk_score": 0.9206395010153452,
+        "is_deepfake": true,
+        "is_scam": false,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-08-26 at 4.05.01 PM.mp4",
+        "category": "Human Scam",
+        "job_id": "80bdc3a5-402c-4f4d-b6ad-3c79da068e1f",
+        "verdict": "Critical: Deepfake + Scam",
+        "risk_score": 0.95,
+        "is_deepfake": true,
+        "is_scam": true,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-08-26 at 4.05.39 PM.mp4",
+        "category": "Human Scam",
+        "job_id": "5ce797ff-6109-4d55-8f56-64e1d1ec0ee5",
+        "verdict": "Critical: Deepfake + Scam",
+        "risk_score": 0.95,
+        "is_deepfake": true,
+        "is_scam": true,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-08-26 at 4.05.46 PM.mp4",
+        "category": "Human Non-Scam",
+        "job_id": "b7b1249d-580d-4617-9ad5-396c4bad4f5a",
+        "verdict": "Safe",
+        "risk_score": 0.0,
+        "is_deepfake": false,
+        "is_scam": false,
+        "pdf_generated": true
+      },
+      {
+        "filename": "WhatsApp Video 2026-08-26 at 4.06.22 PM.mp4",
+        "category": "Human Non-Scam",
+        "job_id": "68d6ac53-723e-4f71-9732-8b2989a69c40",
+        "verdict": "Warning: Deepfake Detected",
+        "risk_score": 0.9,
+        "is_deepfake": true,
+        "is_scam": false,
+        "pdf_generated": true
+      }
+    ],
+    "images": [
+      {
+        "filename": "deepfake_images_1.png",
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "vision_score": 0.5164740681648254,
+        "ocr_chars": 55,
+        "is_scam": true,
+        "pdf_generated": true
+      },
+      {
+        "filename": "deepfake_images_2.png",
+        "verdict": "Safe",
+        "risk_score": 0.0,
+        "vision_score": 0.46725237369537354,
+        "ocr_chars": 55,
+        "is_scam": false,
+        "pdf_generated": true
+      },
+      {
+        "filename": "gemini_watermark_template.png",
+        "verdict": "Safe",
+        "risk_score": 0.0,
+        "vision_score": 0.5139272212982178,
+        "ocr_chars": 0,
+        "is_scam": false,
+        "pdf_generated": true
+      },
+      {
+        "filename": "synthetic_scam_screenshot.png",
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "vision_score": 0.44970065355300903,
+        "ocr_chars": 258,
+        "is_scam": true,
+        "pdf_generated": true
+      }
+    ],
+    "forged_texts": [
+      {
+        "id": "FORGED_EVASIVE_PENNY_STOCK",
+        "title": "Disguised Educational Study + Subtle Pump & Dump",
+        "expected_scam": true,
+        "actual_scam": true,
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "passed": true
+      },
+      {
+        "id": "FORGED_HINGLISH_SLANG_GUARANTEE",
+        "title": "Hinglish Slang + Fake Disclaimers + 100% No-Loss",
+        "expected_scam": true,
+        "actual_scam": true,
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "passed": true
+      },
+      {
+        "id": "FORGED_BROKER_IMPERSONATION_DEPOSIT",
+        "title": "High-Profile Broker Impersonation + Guaranteed Monthly Yield",
+        "expected_scam": true,
+        "actual_scam": true,
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "passed": true
+      },
+      {
+        "id": "FORGED_PROMPT_INJECTION_OVERRIDE",
+        "title": "Adversarial Prompt Injection / Jailbreak Attack",
+        "expected_scam": true,
+        "actual_scam": true,
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "passed": true
+      },
+      {
+        "id": "FORGED_CYBER_EXTORTION_RECOVERY",
+        "title": "Fake SEBI Enforcement Cyber Recovery Extortion",
+        "expected_scam": true,
+        "actual_scam": true,
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "passed": true
+      },
+      {
+        "id": "FORGED_DEFI_ARBITRAGE_PASSIVE",
+        "title": "DeFi Flash-Loan Arbitrage Unrealistic Fixed Yield",
+        "expected_scam": true,
+        "actual_scam": true,
+        "verdict": "Warning: SEBI Violation / Scam",
+        "risk_score": 0.85,
+        "passed": true
+      },
+      {
+        "id": "NEGATIVE_CONTROL_GENUINE_SIP",
+        "title": "Genuine Investor Education on Index SIPs (Negative Control)",
+        "expected_scam": false,
+        "actual_scam": false,
+        "verdict": "Safe",
+        "risk_score": 0.0,
+        "passed": true
+      },
+      {
+        "id": "NEGATIVE_CONTROL_STATUTORY_WARNING",
+        "title": "Statutory Scam Awareness Warning (Negative Control)",
+        "expected_scam": false,
+        "actual_scam": false,
+        "verdict": "Safe",
+        "risk_score": 0.0,
+        "passed": true
+      }
+    ],
+    "apk": [
+      {
+        "filename": "fake_zerodha_trading.apk",
+        "is_suspicious": false,
+        "risk_level": "clean",
+        "reason": "APK analysis failed: Not a DEX file, Header too small.",
+        "has_complaint": true
+      }
+    ],
+    "urls": [
+      {
+        "url": "https://zerodha-trading-bonus.xyz/claim",
+        "type": "Brand-Keyword Phishing",
+        "is_phishing": true,
+        "risk_level": "high",
+        "matched": "zerodha.com",
+        "broker": "Zerodha",
+        "passed": true
+      },
+      {
+        "url": "https://zerodhaa.com/login",
+        "type": "Typo-Squatting (1 char edit)",
+        "is_phishing": true,
+        "risk_level": "high",
+        "matched": "zerodha.com",
+        "broker": "Zerodha",
+        "passed": true
+      },
+      {
+        "url": "https://groww-bonus-login.xyz/free-stocks",
+        "type": "Brand-Keyword Phishing",
+        "is_phishing": true,
+        "risk_level": "high",
+        "matched": "groww.in",
+        "broker": "Groww",
+        "passed": true
+      },
+      {
+        "url": "https://angelone-vip-signals.top",
+        "type": "Brand-Keyword Phishing",
+        "is_phishing": true,
+        "risk_level": "high",
+        "matched": "angelone.in",
+        "broker": "Angel One",
+        "passed": true
+      },
+      {
+        "url": "https://zerodha.com/kite",
+        "type": "Legitimate Broker Domain",
+        "is_phishing": false,
+        "risk_level": "clean",
+        "matched": "zerodha.com",
+        "broker": "Zerodha",
+        "passed": true
+      },
+      {
+        "url": "https://groww.in/stocks",
+        "type": "Legitimate Broker Domain",
+        "is_phishing": false,
+        "risk_level": "clean",
+        "matched": "groww.in",
+        "broker": "Groww",
+        "passed": true
+      },
+      {
+        "url": "https://wikipedia.org",
+        "type": "Unrelated Clean Domain",
+        "is_phishing": false,
+        "risk_level": "low",
+        "matched": "kuvera.in",
+        "broker": "Kuvera",
+        "passed": true
+      }
+    ],
+    "audio": [
+      {
+        "filename": "si639.wav",
+        "category": "Deepfake Voice",
+        "verdict": "Warning: Deepfake Detected",
+        "audio_score": 0.7,
+        "is_deepfake": true,
+        "risk_score": 0.9
+      },
+      {
+        "filename": "si1553.wav",
+        "category": "Deepfake Voice",
+        "verdict": "Warning: Deepfake Detected",
+        "audio_score": 0.65,
+        "is_deepfake": true,
+        "risk_score": 0.9
+      },
+      {
+        "filename": "sa1.wav",
+        "category": "Human Voice (TIMIT)",
+        "verdict": "Warning: Deepfake Detected",
+        "audio_score": 0.6,
+        "is_deepfake": true,
+        "risk_score": 0.9
+      }
+    ]
+  },
+  "issues_found": [
+    "Temporary Ollama/Whisper GPU queuing timeout occurred during concurrent mobile live-stream video upload."
+  ],
+  "issues_resolved": [
+    "Increased HTTP client request timeout from 30-45s to 90-120s for multi-stage synchronous pipelines.",
+    "Verified isolated sequential execution of sa1.wav (HTTP 200 OK, Audio Score: 0.60, Deepfake Detected).",
+    "Verified WhatsApp Web direct bridge endpoint POST /api/whatsapp/bridge-message returning formatted BSA-certified forensic warnings and welcome guides (HTTP 200 OK)."
+  ]
+}

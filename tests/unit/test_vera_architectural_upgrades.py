@@ -116,7 +116,26 @@ def test_sebi_scores_complaint_bsa_2023_statutory_certificate():
     assert "Bharatiya Nyaya Sanhita, 2023" in report_text or "BNS" in report_text
     assert "Section 318(4)" in report_text
     assert "Section 319(2)" in report_text
+    assert "Section 316(2)" in report_text or "BNS Section 316" in report_text
     assert "Section 66D" in report_text
+
+    # Assert Special Economic & Cyber Statutes
+    assert "Banning of Unregulated Deposit Schemes Act" in report_text or "BUDS Act" in report_text
+    assert "Consumer Protection Act, 2019" in report_text
+    assert "Information Technology Rules, 2021" in report_text or "IT Rules" in report_text
+
+def test_included_laws_catalog_structure():
+    """Verify that the master statutory catalog exposes all 6 core legal domains."""
+    from src.stages.stage8_report import get_all_included_laws
+    catalog = get_all_included_laws()
+    assert "securities_regulations" in catalog
+    assert "criminal_penal_code" in catalog
+    assert "cyber_law" in catalog
+    assert "economic_banking_deposits" in catalog
+    assert "consumer_protection" in catalog
+    assert "evidentiary_certification" in catalog
+    assert len(catalog["securities_regulations"]["statutes"]) >= 5
+    assert len(catalog["criminal_penal_code"]["statutes"]) >= 6
 
 def test_pdf_generation_with_bsa_2023_certificate():
     """

@@ -22,10 +22,7 @@ def test_spa_shell_routing(client):
         res = client.get(route)
         assert res.status_code == 200, f"Route {route} failed with {res.status_code}"
         assert "<title>FinGuard" in res.text
-        assert "Check before" in res.text
-        assert "you trust" in res.text
-        assert "fg-brand__shield" in res.text
-        assert "/static/css/banking.css" in res.text
+        assert "redesign.css" in res.text
 
 
 def test_static_assets_served(client):

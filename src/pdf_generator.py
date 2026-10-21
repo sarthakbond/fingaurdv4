@@ -24,17 +24,18 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 
-# ── Color Palette ─────────────────────────────────────────────────────────────
-CLR_PRIMARY = colors.HexColor("#0E4D34")      # Institutional Deep Green
-CLR_PRIMARY_DARK = colors.HexColor("#093322") # Deeper Emerald
-CLR_PRIMARY_LIGHT = colors.HexColor("#EAF5EF")# Soft Green Wash
-CLR_ACCENT_AMBER = colors.HexColor("#B45309") # Regulatory Warning Amber
-CLR_ALERT_RED = colors.HexColor("#B91C1C")    # Deepfake Alert Red
-CLR_BORDER = colors.HexColor("#CBD5E1")       # Neutral Border Slate
-CLR_BG_CARD = colors.HexColor("#F8FAFC")      # Slate Card Background
-CLR_BG_EVIDENCE = colors.HexColor("#F1F5F9")  # Monospace Quote Background
-CLR_TEXT_DARK = colors.HexColor("#0F172A")    # Primary Charcoal
-CLR_TEXT_MUTED = colors.HexColor("#475569")   # Muted Slate
+# ── Color Palette (Color Hunt #790d16, #e5d3af, #f5efe1, #aec4d4) ────────────
+CLR_PRIMARY = colors.HexColor("#790D16")        # Deep Burgundy Primary
+CLR_PRIMARY_DARK = colors.HexColor("#4A070D")   # Deeper Wine Charcoal
+CLR_PRIMARY_LIGHT = colors.HexColor("#F5EFE1")  # Ivory Cream Wash
+CLR_ACCENT_AMBER = colors.HexColor("#B88628")   # Warm Amber / Sand Gold
+CLR_ALERT_RED = colors.HexColor("#790D16")      # Deep Crimson Alert
+CLR_BORDER = colors.HexColor("#E5D3AF")         # Warm Sand Border
+CLR_BG_CARD = colors.HexColor("#FAF7F0")        # Soft Ivory Card Background
+CLR_BG_EVIDENCE = colors.HexColor("#F5EFE1")    # Monospace Ivory Background
+CLR_TEXT_DARK = colors.HexColor("#1F1614")      # Primary Deep Charcoal
+CLR_TEXT_MUTED = colors.HexColor("#544442")     # Warm Slate Muted
+CLR_ACCENT_SKY = colors.HexColor("#AEC4D4")     # Soft Sky Slate Accent
 CLR_WHITE = colors.HexColor("#FFFFFF")
 
 
@@ -200,6 +201,16 @@ def generate_complaint_pdf(
         fontSize=8,
         leading=10,
         textColor=CLR_ALERT_RED,
+    )
+    style_subheading = ParagraphStyle(
+        "SubHeading",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=8.5,
+        leading=12,
+        textColor=CLR_PRIMARY,
+        spaceBefore=6,
+        spaceAfter=3,
     )
 
     story = []
@@ -410,7 +421,9 @@ def generate_complaint_pdf(
                     sline_strip = sline.strip()
                     if not sline_strip:
                         continue
-                    if sline_strip.startswith("•") or sline_strip.startswith("-") or sline_strip.startswith("*"):
+                    if sline_strip.startswith("[") and "]" in sline_strip:
+                        story.append(Paragraph(f"<b>{_clean_text_for_xml(sline_strip)}</b>", style_subheading))
+                    elif sline_strip.startswith("•") or sline_strip.startswith("-") or sline_strip.startswith("*"):
                         bullet_content = sline_strip.lstrip("•-* ").strip()
                         story.append(Paragraph(f"• {_clean_text_for_xml(bullet_content)}", style_bullet))
                     elif ":" in sline_strip and len(sline_strip.split(":", 1)[0]) < 35:
