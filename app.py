@@ -502,6 +502,9 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         )
 
         result_payload = {
+            "job_id": job_id,
+            "filename": jobs[job_id].get("filename", "video_evidence.mp4"),
+            "scan_type": "video",
             "verdict": verdict,
             "is_deepfake": is_deepfake,
             "is_scam": is_scam,
@@ -637,7 +640,8 @@ async def get_job_complaint_pdf(job_id: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to generate complaint PDF: {e}")
 
-    filename = f"FinGuard_SEBI_SCORES_Complaint_{job_id[:8]}.pdf"
+    doc_prefix = "FinGuard_Compliance_Clearance" if "CLEARANCE MEMORANDUM" in (complaint_text or "") else "FinGuard_SEBI_SCORES_Complaint"
+    filename = f"{doc_prefix}_{job_id[:8]}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -681,7 +685,8 @@ async def create_complaint_pdf(req: ComplaintPdfRequest):
         raise HTTPException(status_code=500, detail=f"Failed to generate complaint PDF: {e}")
 
     ref_slug = (req.job_id[:8] if req.job_id else datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-    filename = f"FinGuard_SEBI_SCORES_Complaint_{ref_slug}.pdf"
+    doc_prefix = "FinGuard_Compliance_Clearance" if "CLEARANCE MEMORANDUM" in (complaint_text or "") else "FinGuard_SEBI_SCORES_Complaint"
+    filename = f"{doc_prefix}_{ref_slug}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -755,6 +760,11 @@ async def scan_text(req: TextScanRequest):
 
     result = {
         "scan_type": "text",
+        "job_id": job_id,
+        "filename": "Uploaded Financial Claim / Social Post",
+        "target_url_or_asset": req.text,
+        "transcript": req.text,
+        "input_text": req.text,
         "verdict": verdict,
         "is_scam": is_scam,
         "composite_risk_score": composite_risk,
@@ -872,6 +882,9 @@ def scan_audio(file: UploadFile = File(...)):
 
         result = {
             "scan_type": "audio",
+            "job_id": job_id,
+            "filename": file.filename,
+            "target_url_or_asset": file.filename,
             "verdict": verdict,
             "is_deepfake": is_deepfake,
             "is_scam": is_scam,
@@ -999,6 +1012,9 @@ async def scan_image(file: UploadFile = File(...)):
 
         result = {
             "scan_type": "image",
+            "job_id": job_id,
+            "filename": file.filename,
+            "target_url_or_asset": file.filename,
             "verdict": verdict,
             "is_deepfake": is_deepfake,
             "is_scam": is_scam,
@@ -1006,6 +1022,7 @@ async def scan_image(file: UploadFile = File(...)):
             "vision_score": vision.get("max_score", 0.0),
             "heatmap_base64": vision.get("heatmap_base64"),
             "extracted_text": extracted_text,
+            "transcript": extracted_text,
             "ocr_confidence": ocr.get("avg_confidence", 0.0),
             "ocr_blocks": ocr.get("text_blocks", []),
             "domain_scan": stage9.get("ocr_domain_result"),
@@ -1045,15 +1062,20 @@ async def scan_apk(file: UploadFile = File(...)):
         result = run_stage9_apk_domain(job_id, apk_path=temp_file_path)
         result["scan_type"] = "apk"
         result["filename"] = file.filename
+        result["job_id"] = job_id
         # H2: Generate SEBI SCORES complaint from APK scan
         apk_r = result.get("apk_result") or {}
         complaint_data = {
-            "scan_type": "APK",
-            "verdict": "Suspicious APK" if apk_r.get("is_suspicious") else "Clean APK",
+            "scan_type": "apk",
+            "job_id": job_id,
+            "filename": file.filename,
+            "target_url_or_asset": apk_r.get("package_name") or file.filename,
+            "apk_result": apk_r,
+            "verdict": "Suspicious APK / Trojan" if apk_r.get("is_suspicious") else "Clean / Authentic Application",
             "sebi_analysis": {
                 "is_scam_likely": apk_r.get("is_suspicious", False),
                 "reasoning": apk_r.get("reason", ""),
-                "claimed_advisor_name": file.filename,
+                "claimed_advisor_name": apk_r.get("package_name") or file.filename,
                 "claimed_registration_number": None
             },
             "vision_score": 0.0,
@@ -1083,11 +1105,17 @@ async def scan_url(req: UrlScanRequest):
 
     result = run_stage9_apk_domain(job_id, url=req.url)
     result["scan_type"] = "url"
+    result["job_id"] = job_id
+    result["target_url_or_asset"] = req.url
     # H2: Generate SEBI SCORES complaint from URL scan
     url_r = result.get("url_result") or {}
     complaint_data = {
-        "scan_type": "URL",
-        "verdict": "Phishing Domain" if url_r.get("is_phishing") else "Clean URL",
+        "scan_type": "url",
+        "job_id": job_id,
+        "target_url_or_asset": req.url,
+        "filename": req.url,
+        "url_result": url_r,
+        "verdict": "Phishing Domain / Unauthorized" if url_r.get("is_phishing") else "Verified Whitelisted Broker Domain",
         "sebi_analysis": {
             "is_scam_likely": url_r.get("is_phishing", False),
             "reasoning": url_r.get("reason", ""),

@@ -2,6 +2,40 @@ import {tools,stats,queries,lessons,quiz} from './demo-data.js';
 import {toViewModel} from './model.js';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)], fmt=n=>new Intl.NumberFormat('en-IN').format(n);
 const palette={blue:'#173f35',green:'#2e6653',yellow:'#c8a96b',navy:'#173f35',sand:'#c8a96b',sky:'#2e6653'};
+
+export const ICONS = {
+  shield: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  shieldCheck: `<svg class="fg-icon fg-icon-safe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>`,
+  shieldAlert: `<svg class="fg-icon fg-icon-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  alertOctagon: `<svg class="fg-icon fg-icon-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  alertTriangle: `<svg class="fg-icon fg-icon-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  check: `<svg class="fg-icon fg-icon-safe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`,
+  checkCircle: `<svg class="fg-icon fg-icon-safe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`,
+  xCircle: `<svg class="fg-icon fg-icon-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>`,
+  barChart: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>`,
+  dossier: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  eye: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  mic: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>`,
+  scale: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>`,
+  landmark: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="21" x2="21" y2="21"/><line x1="4" y1="10" x2="20" y2="10"/><polyline points="12 3 2 10 22 10"/><line x1="6" y1="10" x2="6" y2="21"/><line x1="10" y1="10" x2="10" y2="21"/><line x1="14" y1="10" x2="14" y2="21"/><line x1="18" y1="10" x2="18" y2="21"/></svg>`,
+  heatmap: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>`,
+  transcript: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>`,
+  clock: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  evidence: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>`,
+  fileText: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
+  printer: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect width="12" height="8" x="6" y="14"/></svg>`,
+  download: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  copy: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+  video: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2" ry="2"/></svg>`,
+  audio: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
+  apk: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  globe: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+  lock: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+  refresh: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>`,
+  arrowRight: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  arrowLeft: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+  spinner: `<svg class="fg-icon fg-icon-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>`
+};
 const track=$('#carousel-track'),dots=$('#carousel-dots');let active=0,startX=0,dragX=0;
 track.innerHTML=tools.map((t,i)=>`<article class="tool-card" data-card="${i}" style="--card-color:${palette[t.tone]||'#173f35'};--icon-bg:${t.tone==='yellow'?'#faf4e8':t.tone==='green'?'#edf7f2':'#f3ebdd'}"><div class="tool-card-visual" aria-hidden="true"><span class="visual-orbit visual-orbit-one"></span><span class="visual-orbit visual-orbit-two"></span><span class="visual-index">0${i+1}</span><div class="visual-icon">${t.icon}</div><span class="visual-seal">VERIFY<br>WITH CARE</span></div><div class="tool-card-copy"><div class="card-meta"><span class="tool-type">${t.type}</span><span class="card-index">0${i+1} / 05</span></div><h3>${t.title}</h3><p>${t.desc}</p><button class="card-action" data-tool="${t.id}"><span class="action-label">${t.action}</span><span class="action-arrow">→</span></button></div></article>`).join('');
 dots.innerHTML=tools.map((_,i)=>`<button class="carousel-dot" data-dot="${i}" aria-label="Show tool ${i+1}" aria-current="${i===0}"></button>`).join('');
@@ -49,9 +83,12 @@ $('#sebi-form').addEventListener('submit',async (e)=>{
       result.innerHTML=html;
     } else {
       result.innerHTML=`
-        <div style="background:#fff1f2;border:1px solid #fecdd3;padding:12px;border-radius:4px;color:#9f1239">
-          <b style="color:#be123c">❌ Unregistered Entity / Impersonation Alert</b>
-          <div style="font-size:11px;margin-top:4px">No active registration matching “${escapeHtml(value)}” was found in the official SEBI database. Offering financial advice without SEBI registration violates Section 12(1) of the SEBI Act, 1992.</div>
+        <div style="background:#fff1f2;border:1px solid #fecdd3;padding:12px;border-radius:6px;color:#9f1239">
+          <div style="display:flex;align-items:center;gap:8px;color:#be123c;font-weight:700">
+            ${ICONS.alertOctagon}
+            <span>Unregistered Entity / Impersonation Alert</span>
+          </div>
+          <div style="font-size:11.5px;margin-top:6px;line-height:1.5">No active registration matching “${escapeHtml(value)}” was found in the official SEBI database. Offering financial advice without SEBI registration violates Section 12(1) of the SEBI Act, 1992.</div>
         </div>
       `;
     }
@@ -69,6 +106,32 @@ function showToast(msg){
   t.textContent=msg;
   t.classList.add('visible');
   setTimeout(()=>t.classList.remove('visible'),3000);
+}
+
+async function downloadComplaintPdfBlob(complaintText, mode, verdict) {
+  if (!complaintText) return;
+  const isClearance = complaintText.includes('CLEARANCE MEMORANDUM');
+  const pdfResp = await fetch('/api/complaint/pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      complaint_text: complaintText,
+      mode: mode || 'Multi-Modal Scan',
+      verdict: verdict
+    })
+  });
+  if (!pdfResp.ok) throw new Error('PDF generation failed');
+  const blob = await pdfResp.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const prefix = isClearance ? 'FinGuard_Compliance_Clearance_' : 'FinGuard_SEBI_SCORES_Complaint_';
+  a.download = `${prefix}${Date.now()}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(isClearance ? 'Certified Clearance PDF downloaded!' : 'Certified Court Complaint PDF downloaded!');
 }
 
 function fmtClock(s) {
@@ -97,7 +160,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
       <!-- 1. Video Deepfake Modality -->
       <div class="forensic-modality-card">
         <div class="forensic-modality-card-head">
-          <h4 class="forensic-modality-title">👁️ Visual Facial Forensics</h4>
+          <h4 class="forensic-modality-title">${ICONS.eye} Visual Facial Forensics</h4>
           <span class="forensic-modality-badge ${vBadge}">
             ${video.score !== null ? `${(video.score * 100).toFixed(1)}%` : 'N/A'}
           </span>
@@ -114,7 +177,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
       <!-- 2. Voice Clone Modality -->
       <div class="forensic-modality-card">
         <div class="forensic-modality-card-head">
-          <h4 class="forensic-modality-title">🎙️ Acoustic Voice Clone</h4>
+          <h4 class="forensic-modality-title">${ICONS.mic} Acoustic Voice Clone</h4>
           <span class="forensic-modality-badge ${aBadge}">
             ${audio.score !== null ? `${(audio.score * 100).toFixed(1)}%` : 'N/A'}
           </span>
@@ -131,7 +194,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
       <!-- 3. Financial Scam & Regulatory -->
       <div class="forensic-modality-card">
         <div class="forensic-modality-card-head">
-          <h4 class="forensic-modality-title">⚖️ Financial Scam Claims</h4>
+          <h4 class="forensic-modality-title">${ICONS.scale} Financial Scam Claims</h4>
           <span class="forensic-modality-badge ${sBadge}">
             ${scam.score !== null ? `${Math.round(scam.score * 100)}%` : (scam.violatesSebi ? 'Violated' : 'Clean')}
           </span>
@@ -139,8 +202,8 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
         <div class="forensic-modality-status">${escapeHtml(scam.label || (scam.violatesSebi ? 'Prohibited Promises Flagged' : 'No Prohibited Promises'))}</div>
         <div class="forensic-modality-desc">${escapeHtml(scam.explanation || 'Screened statements against SEBI Investment Adviser Regulations and penal code fraud.')}</div>
         <dl class="forensic-detail-dl">
-          <div class="forensic-detail-row"><dt>SEBI IA Reg 15</dt><dd>${scam.violatesSebi ? '❌ Violated' : '✅ Compliant'}</dd></div>
-          <div class="forensic-detail-row"><dt>BNS Sec 318(4) Match</dt><dd>${scam.violatesBns ? '❌ Flagged' : '✅ None'}</dd></div>
+          <div class="forensic-detail-row"><dt>SEBI IA Reg 15</dt><dd>${scam.violatesSebi ? `<span class="fg-status-tag tag-danger">${ICONS.xCircle} Violated</span>` : `<span class="fg-status-tag tag-safe">${ICONS.checkCircle} Compliant</span>`}</dd></div>
+          <div class="forensic-detail-row"><dt>BNS Sec 318(4) Match</dt><dd>${scam.violatesBns ? `<span class="fg-status-tag tag-danger">${ICONS.alertTriangle} Flagged</span>` : `<span class="fg-status-tag tag-safe">${ICONS.check} None</span>`}</dd></div>
           <div class="forensic-detail-row"><dt>DPDP PII Scrubbed</dt><dd>${raw.dpdp_pii_scrubbed_count || 0} Entities</dd></div>
         </dl>
       </div>
@@ -148,7 +211,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
       <!-- 4. SEBI Intermediary Registry -->
       <div class="forensic-modality-card">
         <div class="forensic-modality-card-head">
-          <h4 class="forensic-modality-title">🏛️ SEBI Registry Cross-Check</h4>
+          <h4 class="forensic-modality-title">${ICONS.landmark} SEBI Registry Cross-Check</h4>
           <span class="forensic-modality-badge ${rBadge}">
             ${escapeHtml(reg.badge || 'Official Database')}
           </span>
@@ -171,7 +234,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     heatmapHtml = `
       <details class="forensic-disclosure" open>
         <summary>
-          <span>🔥 Visual Forensic Heatmap (Facial Manipulation Anomaly Map)</span>
+          <span>${ICONS.heatmap} Visual Forensic Heatmap (Facial Manipulation Anomaly Map)</span>
           <span style="font-size:12px;color:var(--muted)">Spatial & C3D Activation ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -192,7 +255,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     transcriptHtml = `
       <details class="forensic-disclosure" open>
         <summary>
-          <span>💬 Timestamped Audio Transcript (OpenAI Whisper)</span>
+          <span>${ICONS.transcript} Timestamped Audio Transcript (OpenAI Whisper)</span>
           <span style="font-size:12px;color:var(--muted)">${segments.length} Segments ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -211,7 +274,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     transcriptHtml = `
       <details class="forensic-disclosure" open>
         <summary>
-          <span>💬 Audio Speech Transcript (OpenAI Whisper)</span>
+          <span>${ICONS.transcript} Audio Speech Transcript (OpenAI Whisper)</span>
           <span style="font-size:12px;color:var(--muted)">Full Text ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -229,7 +292,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     timelineHtml = `
       <details class="forensic-disclosure">
         <summary>
-          <span>⏱️ Media Forensic Timeline Track</span>
+          <span>${ICONS.clock} Media Forensic Timeline Track</span>
           <span style="font-size:12px;color:var(--muted)">${timeline.length} Evidence Events ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -260,7 +323,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     evidenceHtml = `
       <details class="forensic-disclosure" open>
         <summary>
-          <span>📋 Quoted Evidence & Findings Audit Trail</span>
+          <span>${ICONS.evidence} Quoted Evidence & Findings Audit Trail</span>
           <span style="font-size:12px;color:var(--muted)">${evidenceItems.length} Quoted Items ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -306,7 +369,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     statutoryHtml = `
       <details class="forensic-disclosure">
         <summary>
-          <span>⚖️ Statutory Legal & Regulatory Violations</span>
+          <span>${ICONS.scale} Statutory Legal & Regulatory Violations</span>
           <span style="font-size:12px;color:var(--muted)">Acts & Penal Provisions ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -339,7 +402,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
     nextStepsHtml = `
       <details class="forensic-disclosure">
         <summary>
-          <span>🛡️ Recommended Protective Actions</span>
+          <span>${ICONS.shield} Recommended Protective Actions</span>
           <span style="font-size:12px;color:var(--muted)">${nextSteps.length} Next Steps ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
@@ -362,22 +425,25 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
   const scoresComplaint = vm.scoresComplaint || raw.scores_complaint || '';
   let complaintDraftHtml = '';
   if (scoresComplaint) {
+    const isClearance = scoresComplaint.includes("CLEARANCE MEMORANDUM");
+    const sectionTitle = isClearance ? 'Statutory Forensic Clearance Memorandum & Compliance Record' : 'Official SEBI SCORES 2.0 Complaint Draft';
+    const pdfBtnText = isClearance ? 'Download Certified Clearance (PDF)' : 'Download Certified Complaint (PDF)';
     complaintDraftHtml = `
       <details class="forensic-disclosure" open>
         <summary>
-          <span>🏛️ Official SEBI SCORES 2.0 Complaint Draft</span>
+          <span>${isClearance ? ICONS.shieldCheck : ICONS.landmark} ${sectionTitle}</span>
           <span style="font-size:12px;color:var(--muted)">Certified Text Format ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
           <div class="complaint-actions-row">
             <a href="/api/jobs/${jobId}/complaint/pdf" target="_blank" class="button btn-mobile-pdf" style="min-height:44px;font-size:13px;padding:8px 16px;width:auto">
-              <span>📄</span> Download Certified Complaint (PDF)
+              ${ICONS.fileText} ${pdfBtnText}
             </a>
             <button type="button" class="button btn-mobile-print" id="btn-print-dossier" style="min-height:44px;font-size:13px;padding:8px 16px;width:auto">
-              <span>🖨️</span> Print Full Forensic Dossier
+              ${ICONS.printer} Print Full Forensic Dossier
             </button>
             <button type="button" class="button btn-mobile-copy" id="btn-dl-txt" style="min-height:44px;font-size:13px;padding:8px 16px;width:auto">
-              <span>💾</span> Download .TXT Report
+              ${ICONS.download} Download .TXT Report
             </button>
           </div>
           <pre class="forensic-complaint-pre" id="scores-complaint-text">${escapeHtml(scoresComplaint)}</pre>
@@ -410,13 +476,11 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
 }
 
 function wireDossierActions(res, vm, jobId) {
-  const jumpBtn = $('#btn-scroll-dossier', dlg);
-  if (jumpBtn) {
-    jumpBtn.addEventListener('click', () => {
-      const dossier = $('#detailed-forensic-dossier', dlg);
-      if (dossier) dossier.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
+  const jumpBtns = $$('#btn-scroll-dossier, #btn-switch-to-dossier-tab', dlg);
+  jumpBtns.forEach(b => b.addEventListener('click', () => switchToTab('dossier')));
+
+  const backBtns = $$('#btn-back-to-summary', dlg);
+  backBtns.forEach(b => b.addEventListener('click', () => switchToTab('summary')));
 
   const printBtns = $$('#btn-print-dossier, #btn-print-dossier-main', dlg);
   printBtns.forEach(b => b.addEventListener('click', () => window.print()));
@@ -471,26 +535,110 @@ END OF DOSSIER — BHARATIYA SAKSHYA ADHINIYAM (BSA 2023) SEC 63
         let cText = res.scores_complaint || vm.scoresComplaint || '';
         if (!cText) {
           copyBtn.disabled = true;
-          copyBtn.innerHTML = '<span>⏳</span> Fetching Complaint...';
+          copyBtn.innerHTML = `${ICONS.spinner} Fetching Complaint...`;
           const cResp = await fetch(`/api/jobs/${jobId}/complaint`);
           if (!cResp.ok) throw new Error('Could not fetch complaint');
           cText = await cResp.text();
         }
         await navigator.clipboard.writeText(cText);
-        copyBtn.innerHTML = '<span>✓</span> Copied Complaint to Clipboard!';
+        copyBtn.innerHTML = `${ICONS.check} Copied Complaint to Clipboard!`;
         showToast('Complaint text copied to clipboard!');
         setTimeout(() => {
           copyBtn.disabled = false;
-          copyBtn.innerHTML = '<span>📋</span> Copy Plaintext Complaint to Clipboard';
+          copyBtn.innerHTML = `${ICONS.copy} Copy Plaintext Complaint to Clipboard`;
         }, 3000);
       } catch (e) {
         console.error(e);
         showToast('Unable to copy automatically. Download PDF instead.');
         copyBtn.disabled = false;
-        copyBtn.innerHTML = '<span>📋</span> Copy Plaintext Complaint to Clipboard';
+        copyBtn.innerHTML = `${ICONS.copy} Copy Plaintext Complaint to Clipboard`;
       }
     });
   }
+}
+
+function setupResultsTabs() {
+  const tabSummary = $('#tab-btn-summary', dlg);
+  const tabDossier = $('#tab-btn-dossier', dlg);
+  const panelSummary = $('#panel-summary', dlg);
+  const panelDossier = $('#panel-dossier', dlg);
+  if (!tabSummary || !tabDossier || !panelSummary || !panelDossier) return;
+
+  function activate(tab) {
+    const isSum = tab === 'summary';
+    tabSummary.classList.toggle('active', isSum);
+    tabSummary.setAttribute('aria-selected', String(isSum));
+    tabSummary.tabIndex = isSum ? 0 : -1;
+    panelSummary.classList.toggle('active', isSum);
+    panelSummary.hidden = !isSum;
+
+    tabDossier.classList.toggle('active', !isSum);
+    tabDossier.setAttribute('aria-selected', String(!isSum));
+    tabDossier.tabIndex = !isSum ? 0 : -1;
+    panelDossier.classList.toggle('active', !isSum);
+    panelDossier.hidden = isSum;
+
+    const scrollArea = dlg.querySelector('.dialog-scroll-area') || dlg;
+    scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  tabSummary.addEventListener('click', () => activate('summary'));
+  tabDossier.addEventListener('click', () => activate('dossier'));
+
+  [tabSummary, tabDossier].forEach((tBtn, idx) => {
+    tBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const nextTab = idx === 0 ? 'dossier' : 'summary';
+        const nextBtn = idx === 0 ? tabDossier : tabSummary;
+        nextBtn.focus();
+        activate(nextTab);
+      }
+    });
+  });
+}
+
+function switchToTab(tabName) {
+  const targetBtn = tabName === 'dossier' ? $('#tab-btn-dossier', dlg) : $('#tab-btn-summary', dlg);
+  if (targetBtn) targetBtn.click();
+}
+
+function renderAnalyzingView(file, tool) {
+  const sizeMb = file ? (file.size / 1048576).toFixed(2) : '0';
+  const fileName = file ? file.name : (tool?.id === 'url' ? 'Live Web Domain Scan' : 'Financial Promotional Claim');
+  const icon = tool?.id === 'audio' ? ICONS.audio : tool?.id === 'video' ? ICONS.video : tool?.id === 'apk' ? ICONS.apk : tool?.id === 'url' ? ICONS.globe : ICONS.scale;
+  const typeText = tool?.type || 'FORENSIC AUDIT';
+
+  dlgContent.className = 'dialog-content dialog-analyzing-mode';
+  dlgContent.innerHTML = `
+    <div class="analyzing-view-wrapper">
+      <div class="analyzing-context-pill">
+        <div class="analyzing-file-info">
+          <span class="analyzing-icon">${icon}</span>
+          <div class="analyzing-meta-text">
+            <span class="analyzing-kicker">${escapeHtml(typeText)} · ACTIVE FORENSIC SESSION</span>
+            <b class="analyzing-filename">${escapeHtml(fileName)}</b>
+            <span class="analyzing-meta-sub">${file ? `${sizeMb} MB · FinGuard GPU Engine` : '9-Stage Regulatory Compliance Engine'}</span>
+          </div>
+        </div>
+        <div class="analyzing-live-badge">
+          <span class="pulse-radar"></span>
+          <span>COMPUTING FORENSICS</span>
+        </div>
+      </div>
+
+      <div id="analyzing-progress-slot">
+        <!-- Progress Tracker Injected Here -->
+      </div>
+
+      <div class="analyzing-footer-hint">
+        <span>${ICONS.lock} Zero-retention forensic sandbox · Bharatiya Sakshya Adhiniyam (BSA 2023) Sec 63 compliant</span>
+      </div>
+    </div>
+  `;
+
+  const scrollArea = dlg.querySelector('.dialog-scroll-area') || dlg;
+  scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
@@ -505,16 +653,16 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
   const isVisionFake = vScoreNum !== null && vScoreNum > 0.4;
   const isAudioFake = aScoreNum !== null && aScoreNum > 0.5;
 
-  let bannerClass = 'banner-safe', bannerIcon = '✅', fillClass = 'fill-safe', colorClass = 'color-safe', riskLevelText = 'LOW / NO MALICIOUS SIGNALS';
+  let bannerClass = 'banner-safe', bannerIconSvg = ICONS.shieldCheck, fillClass = 'fill-safe', colorClass = 'color-safe', riskLevelText = 'LOW / NO MALICIOUS SIGNALS';
   if (risk >= 80 || (isDeepfake && isScam)) {
     bannerClass = 'banner-critical';
-    bannerIcon = '🚨';
+    bannerIconSvg = ICONS.alertOctagon;
     fillClass = 'fill-critical';
     colorClass = 'color-critical';
     riskLevelText = 'CRITICAL FRAUD & DEEPFAKE THREAT';
   } else if (risk >= 40 || isDeepfake || isScam) {
     bannerClass = 'banner-warning';
-    bannerIcon = '⚠️';
+    bannerIconSvg = ICONS.alertTriangle;
     fillClass = 'fill-warning';
     colorClass = 'color-warning';
     riskLevelText = 'SUSPICIOUS / ELEVATED RISK';
@@ -526,11 +674,10 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
   const vm = toViewModel(res, { mode: 'video', jobId: jobId, filename: filename });
   const detailedHtml = buildDetailedAnalysisHtml(vm, res, jobId);
 
-  const out = $('#workspace-output', dlg);
-  out.innerHTML = `
+  const executiveHtml = `
     <div class="mobile-conclusion-card" id="workspace-result-card">
       <div class="mobile-verdict-banner ${bannerClass}">
-        <span class="banner-icon">${bannerIcon}</span>
+        <span class="banner-icon">${bannerIconSvg}</span>
         <div class="banner-text">
           <span class="banner-kicker">FINANCIAL FORENSIC CONCLUSION</span>
           <h3 class="banner-title">${escapeHtml(verdict.toUpperCase())}</h3>
@@ -554,7 +701,7 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
       
       <div class="mobile-findings-list">
         <div class="finding-card ${isVisionFake ? 'finding-danger' : 'finding-ok'}">
-          <span class="finding-icon">${isVisionFake ? '👁️' : '✅'}</span>
+          <span class="finding-icon">${isVisionFake ? ICONS.eye : ICONS.checkCircle}</span>
           <div class="finding-content">
             <b>Visual Facial Authenticity</b>
             <span>${vScoreStr} · ${isVisionFake ? 'Synthetic Face / Temporal Glitches Detected' : 'Authentic Camera Capture'}</span>
@@ -562,7 +709,7 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
         </div>
         
         <div class="finding-card ${isAudioFake ? 'finding-danger' : 'finding-ok'}">
-          <span class="finding-icon">${isAudioFake ? '🎙️' : '✅'}</span>
+          <span class="finding-icon">${isAudioFake ? ICONS.mic : ICONS.checkCircle}</span>
           <div class="finding-content">
             <b>Voice Authenticity (Wav2Vec2)</b>
             <span>${aScoreStr} · ${isAudioFake ? 'Synthetic Voice Clone Detected' : 'Natural Human Voice Patterns'}</span>
@@ -570,7 +717,7 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
         </div>
         
         <div class="finding-card ${isRegFlag ? 'finding-danger' : 'finding-ok'}">
-          <span class="finding-icon">${isRegFlag ? '🏛️' : '✅'}</span>
+          <span class="finding-icon">${isRegFlag ? ICONS.landmark : ICONS.checkCircle}</span>
           <div class="finding-content">
             <b>SEBI Intermediary Registry</b>
             <span>${escapeHtml(regVerdict).toUpperCase()} · ${isRegFlag ? 'Unregistered / Identity Fraud Risk' : 'No Fraudulent Registry Claim'}</span>
@@ -578,7 +725,7 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
         </div>
         
         <div class="finding-card finding-info">
-          <span class="finding-icon">⚖️</span>
+          <span class="finding-icon">${ICONS.scale}</span>
           <div class="finding-content">
             <b>Legal Admissibility (BSA 2023)</b>
             <span>Section 63 Digital Evidence Hash & Audit Trail Certified</span>
@@ -595,33 +742,98 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
       
       <div class="mobile-conclusion-actions">
         <a href="/api/jobs/${jobId}/complaint/pdf" target="_blank" class="button btn-mobile-pdf" id="btn-dl-pdf-main">
-          <span>📄</span> Download Certified Court Complaint (PDF)
+          ${ICONS.fileText} ${(res.scores_complaint || '').includes('CLEARANCE MEMORANDUM') ? 'Download Certified Clearance Report (PDF)' : 'Download Certified Court Complaint (PDF)'}
         </a>
         <button type="button" class="button btn-mobile-print" id="btn-print-dossier-main">
-          <span>🖨️</span> Print / Save Full Dossier (PDF)
+          ${ICONS.printer} Print / Save Full Dossier (PDF)
         </button>
         <button type="button" class="button btn-mobile-copy" id="btn-dl-txt-main">
-          <span>💾</span> Download Plaintext (.TXT) Report
+          ${ICONS.download} Download Plaintext (.TXT) Report
         </button>
         <button type="button" class="button btn-mobile-copy" id="btn-copy-complaint">
-          <span>📋</span> Copy Plaintext Complaint to Clipboard
+          ${ICONS.copy} ${(res.scores_complaint || '').includes('CLEARANCE MEMORANDUM') ? 'Copy Certified Clearance to Clipboard' : 'Copy Plaintext Complaint to Clipboard'}
         </button>
-        <button type="button" class="button btn-mobile-secondary" id="btn-scroll-dossier">
-          <span>🔍</span> Inspect Detailed Forensic Dossier ↓
+        <button type="button" class="button btn-mobile-secondary" id="btn-switch-to-dossier-tab">
+          ${ICONS.dossier} Switch to Full Forensic Dossier & Evidence →
         </button>
       </div>
     </div>
-
-    ${detailedHtml}
   `;
 
+  dlgContent.className = 'dialog-content dialog-results-mode';
+  dlgContent.innerHTML = `
+    <div class="results-workspace">
+      <!-- Top Meta Bar -->
+      <div class="results-meta-strip">
+        <div class="results-meta-info">
+          <span class="results-meta-icon">${ICONS.video}</span>
+          <div>
+            <div class="results-filename-row">
+              <span class="results-doc-tag">EVIDENCE FILE</span>
+              <h3 class="results-filename">${escapeHtml(filename)}</h3>
+              <span class="results-job-pill">REF #${escapeHtml(jobId.slice(0, 8))}</span>
+            </div>
+            <span class="results-meta-sub">Analyzed with 9-Stage Forensic Core · BSA 2023 Sec 63 Evidence Trail</span>
+          </div>
+        </div>
+        <button type="button" class="btn-new-analysis" id="btn-reanalyze-top">
+          ${ICONS.refresh} Analyze Another Video
+        </button>
+      </div>
+
+      <!-- Accessible High-Contrast Forensic Tabs -->
+      <div class="forensic-tab-nav" role="tablist" aria-label="Investigation Results Navigation">
+        <button type="button" class="forensic-tab-btn active" role="tab" id="tab-btn-summary" aria-selected="true" aria-controls="panel-summary" tabindex="0">
+          <div class="tab-btn-main">
+            <span class="tab-step-num">TAB 01</span>
+            <span class="tab-btn-title">
+              <span class="tab-btn-icon">${ICONS.barChart}</span>
+              Executive Verdict
+            </span>
+          </div>
+          <span class="tab-badge-pill ${bannerClass}">${escapeHtml(verdict)}</span>
+        </button>
+        <button type="button" class="forensic-tab-btn" role="tab" id="tab-btn-dossier" aria-selected="false" aria-controls="panel-dossier" tabindex="-1">
+          <div class="tab-btn-main">
+            <span class="tab-step-num">TAB 02</span>
+            <span class="tab-btn-title">
+              <span class="tab-btn-icon">${ICONS.dossier}</span>
+              Forensic Dossier
+            </span>
+          </div>
+          <span class="tab-badge-pill pill-subtle">Full Evidence</span>
+        </button>
+      </div>
+
+      <!-- Tab Panels -->
+      <div class="results-tab-content">
+        <div class="results-tab-panel active" id="panel-summary" role="tabpanel" aria-labelledby="tab-btn-summary">
+          ${executiveHtml}
+        </div>
+        <div class="results-tab-panel" id="panel-dossier" role="tabpanel" aria-labelledby="tab-btn-dossier" hidden>
+          ${detailedHtml}
+          <div style="margin-top: 16px; text-align: center;">
+            <button type="button" class="button btn-mobile-secondary" id="btn-back-to-summary" style="max-width: 380px; margin: 0 auto;">
+              ${ICONS.arrowLeft} Return to Executive Verdict
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  setupResultsTabs();
   wireDossierActions(res, vm, jobId);
 
-  setTimeout(() => {
-    const card = $('#workspace-result-card', dlg);
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    else dlg.scrollTo({ top: out.offsetTop - 30, behavior: 'smooth' });
-  }, 100);
+  $('#btn-reanalyze-top', dlg)?.addEventListener('click', () => {
+    selectedFile = null;
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    previewUrl = null;
+    renderWorkspace();
+  });
+
+  const scrollArea = dlg.querySelector('.dialog-scroll-area') || dlg;
+  scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 const PIPELINE_STAGES = [
@@ -663,7 +875,7 @@ function renderUploadTracker(loadedBytes, totalBytes, percent) {
       </div>
       <div class="tracker-meta">
         <span><b>${loadedMb} MB</b> of ${totalMb} MB transferred</span>
-        <span>🔒 AES-256 Encrypted Transfer</span>
+        <span>${ICONS.lock} AES-256 Encrypted Transfer</span>
       </div>
     </div>
   `;
@@ -680,12 +892,12 @@ function renderPipelineTracker(activeStageIdx, isCompleted = false) {
     
     if (isCompleted || idx < activeStageIdx) {
       state = 'completed';
-      statusText = '✓ Completed';
-      iconContent = '✓';
+      statusText = 'Completed';
+      iconContent = ICONS.check;
     } else if (idx === activeStageIdx) {
       state = 'active';
       statusText = 'Running...';
-      iconContent = '◉';
+      iconContent = '<span class="fg-beacon beacon-active"></span>';
     }
     
     return `
@@ -713,7 +925,7 @@ function renderPipelineTracker(activeStageIdx, isCompleted = false) {
         <div class="tracker-meter-fill" style="width: ${pct}%"></div>
       </div>
       <div class="tracker-active-sub">
-        ${isCompleted ? '✅ All 7 forensic models completed verification.' : `⚡ <b>Active Pipeline:</b> ${escapeHtml(activeStage.desc)}`}
+        ${isCompleted ? `<span class="fg-pipeline-done">${ICONS.checkCircle} All 7 forensic models completed verification.</span>` : `<span class="fg-beacon beacon-active"></span> <b>Active Pipeline:</b> ${escapeHtml(activeStage.desc)}`}
       </div>
       <div class="stages-stepper">
         ${stagesHtml}
@@ -784,10 +996,10 @@ function renderWorkspace(){
     <span class="dialog-kicker">${t.type} · FINGUARD LIVE FORENSICS</span>
     <h2 id="dialog-title">${t.title}</h2>
     <p>${t.desc}</p>
-    <span class="demo-banner" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0">🟢 LIVE 9-STAGE FORENSIC ENGINE CONNECTED</span>
+    <span class="demo-banner" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0"><span class="fg-beacon beacon-active"></span> LIVE 9-STAGE FORENSIC ENGINE CONNECTED</span>
     ${upload?`
       <div class="dropzone" id="dropzone">
-        <span class="drop-icon">${audio?'♫':'↥'}</span>
+        <span class="drop-icon">${audio ? ICONS.audio : ICONS.fileText}</span>
         <b>${audio?'Drop an audio recording here':'Choose or Drop a file here'}</b>
         <small>${audio?'MP3, WAV, M4A, or other audio file':'Select media to analyze with local GPU models'}</small>
         <input class="file-input" id="file-input" type="file" accept="${accept}">
@@ -842,7 +1054,7 @@ function setFile(file){
   }
   $('#file-info',dlg).innerHTML=`
     <div class="file-selected">
-      <span style="font-size:18px">${kind==='audio'?'♫':kind==='video'?'🎬':'📦'}</span>
+      <span class="file-type-icon">${kind==='audio' ? ICONS.audio : kind==='video' ? ICONS.video : ICONS.apk}</span>
       <div style="flex:1 1 auto;min-width:0">
         <b style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(file.name)}</b>
         <span style="font-size:12px;color:#475569">${sizeMb} MB · Ready for FinGuard GPU models</span>
@@ -894,20 +1106,21 @@ async function runDemo(){
   const btn=$('#run-demo',dlg);
   btn.disabled=true;
   const originalBtnText=btn.innerHTML;
-  btn.innerHTML='<span>⏳</span> Verifying Content...';
+  btn.innerHTML=`${ICONS.spinner} Verifying Content...`;
   
   try {
     // ── 1. Video Multimodal Forensics ───────────────────────────────
     if(toolId==='video'){
-      out.innerHTML=renderUploadTracker(0, selectedFile.size, 0);
-      setTimeout(()=>{ dlg.scrollTo({top:out.offsetTop-30,behavior:'smooth'}); }, 50);
+      renderAnalyzingView(selectedFile, activeTool);
+      const slot=$('#analyzing-progress-slot',dlg);
+      slot.innerHTML=renderUploadTracker(0, selectedFile.size, 0);
       
       const initData=await uploadWithProgress(selectedFile, (loaded, total, pct)=>{
-        out.innerHTML=renderUploadTracker(loaded, total, pct);
+        slot.innerHTML=renderUploadTracker(loaded, total, pct);
       });
       
       const jobId=initData.job_id;
-      out.innerHTML=renderPipelineTracker(0, false);
+      slot.innerHTML=renderPipelineTracker(0, false);
       
       let completed=false,pollCount=0;
       while(!completed&&pollCount<120){
@@ -919,10 +1132,10 @@ async function runDemo(){
         
         if(checkData.status==='processing'){
           const stageIdx=getStageIndex(checkData.stage);
-          out.innerHTML=renderPipelineTracker(stageIdx, false);
+          slot.innerHTML=renderPipelineTracker(stageIdx, false);
         } else if(checkData.status==='completed'){
           completed=true;
-          out.innerHTML=renderPipelineTracker(6, true);
+          slot.innerHTML=renderPipelineTracker(6, true);
           await new Promise(r=>setTimeout(r,400));
           renderVideoResults(checkData.result || {}, jobId, selectedFile?.name);
         } else if(checkData.status==='failed'){
@@ -940,7 +1153,7 @@ async function runDemo(){
             <span class="tracker-pct">50%</span>
           </div>
           <div class="tracker-meter"><div class="tracker-meter-fill" style="width:50%"></div></div>
-          <div class="tracker-active-sub">⚡ Analyzing acoustic temporal artifacts and vocal frequency distributions</div>
+          <div class="tracker-active-sub"><span class="fg-beacon beacon-active"></span> Analyzing acoustic temporal artifacts and vocal frequency distributions</div>
         </div>
       `;
       setTimeout(()=>{ dlg.scrollTo({top:out.offsetTop-30,behavior:'smooth'}); }, 50);
@@ -956,7 +1169,7 @@ async function runDemo(){
       out.innerHTML=`
         <div class="mobile-conclusion-card" id="workspace-result-card">
           <div class="mobile-verdict-banner ${isFake?'banner-critical':'banner-safe'}">
-            <span class="banner-icon">${isFake?'🚨':'✅'}</span>
+            <span class="banner-icon">${isFake ? ICONS.alertOctagon : ICONS.shieldCheck}</span>
             <div class="banner-text">
               <span class="banner-kicker">ACOUSTIC CLASSIFICATION</span>
               <h3 class="banner-title">${isFake?'SYNTHETIC VOICE CLONE DETECTED':'AUTHENTIC HUMAN SPEECH'}</h3>
@@ -980,7 +1193,7 @@ async function runDemo(){
           
           <div class="mobile-findings-list">
             <div class="finding-card ${isFake?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">${isFake?'🎙️':'✅'}</span>
+              <span class="finding-icon">${isFake ? ICONS.mic : ICONS.checkCircle}</span>
               <div class="finding-content">
                 <b>Acoustic Neural Architecture</b>
                 <span>${escapeHtml(data.audio_backend||'Wav2Vec2 GaryStafford')} · ${data.audio_windows_flagged||0} flagged temporal windows</span>
@@ -996,21 +1209,55 @@ async function runDemo(){
           `:''}
           
           <div class="mobile-conclusion-actions">
+            ${data.scores_complaint ? `
+              <button type="button" class="button btn-mobile-pdf" id="btn-audio-dl-pdf">
+                ${ICONS.fileText} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}
+              </button>
+            ` : ''}
             <button type="button" class="button btn-mobile-print" id="btn-audio-print">
-              <span>🖨️</span> Print / Save Acoustic Dossier (PDF)
+              ${ICONS.printer} Print / Save Acoustic Dossier (PDF)
             </button>
             <button type="button" class="button btn-mobile-copy" id="btn-audio-copy">
-              <span>📋</span> Copy Speech Transcript to Clipboard
+              ${ICONS.copy} Copy Speech Findings to Clipboard
             </button>
           </div>
+
+          ${data.scores_complaint ? `
+            <details class="forensic-disclosure" open style="margin-top:16px">
+              <summary>
+                <span>${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? ICONS.shieldCheck : ICONS.landmark} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Statutory Forensic Clearance Memorandum' : 'Official Cyber Crime / SEBI Complaint Draft'}</span>
+                <span style="font-size:12px;color:var(--muted)">Certified Format ▾</span>
+              </summary>
+              <div class="forensic-disclosure-inner">
+                <pre class="forensic-complaint-pre">${escapeHtml(data.scores_complaint)}</pre>
+              </div>
+            </details>
+          ` : ''}
         </div>
       `;
       const audioPrint=$('#btn-audio-print',dlg);
       if(audioPrint)audioPrint.addEventListener('click',()=>window.print());
+      const audioPdf=$('#btn-audio-dl-pdf',dlg);
+      if(audioPdf && data.scores_complaint){
+        audioPdf.addEventListener('click',async ()=>{
+          try {
+            audioPdf.disabled = true;
+            audioPdf.innerHTML = `${ICONS.spinner} Generating PDF...`;
+            await downloadComplaintPdfBlob(data.scores_complaint, 'Audio Acoustic Scan', isFake ? 'Voice Deepfake Flagged' : 'Authentic Human Speech');
+          } catch(e) {
+            console.error(e);
+            showToast('PDF generation failed. Use print instead.');
+          } finally {
+            audioPdf.disabled = false;
+            const isClr = (data.scores_complaint||'').includes('CLEARANCE MEMORANDUM');
+            audioPdf.innerHTML = `${ICONS.fileText} ${isClr ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}`;
+          }
+        });
+      }
       const audioCopy=$('#btn-audio-copy',dlg);
       if(audioCopy){
         audioCopy.addEventListener('click',async ()=>{
-          const textToCopy=data.transcript||`Voice Spoof Likelihood: ${score}% (${data.audio_backend||'Wav2Vec2'})`;
+          const textToCopy=data.scores_complaint||data.transcript||`Voice Spoof Likelihood: ${score}% (${data.audio_backend||'Wav2Vec2'})`;
           await navigator.clipboard.writeText(textToCopy);
           showToast('Audio findings copied to clipboard!');
         });
@@ -1031,7 +1278,7 @@ async function runDemo(){
             <span class="tracker-pct">50%</span>
           </div>
           <div class="tracker-meter"><div class="tracker-meter-fill" style="width:50%"></div></div>
-          <div class="tracker-active-sub">⚡ Inspecting Android permissions, trojan capabilities, and broker whitelists</div>
+          <div class="tracker-active-sub"><span class="fg-beacon beacon-active"></span> Inspecting Android permissions, trojan capabilities, and broker whitelists</div>
         </div>
       `;
       setTimeout(()=>{ dlg.scrollTo({top:out.offsetTop-30,behavior:'smooth'}); }, 50);
@@ -1047,7 +1294,7 @@ async function runDemo(){
       out.innerHTML=`
         <div class="mobile-conclusion-card" id="workspace-result-card">
           <div class="mobile-verdict-banner ${isSuspicious?'banner-critical':'banner-safe'}">
-            <span class="banner-icon">${isSuspicious?'🚨':'✅'}</span>
+            <span class="banner-icon">${isSuspicious ? ICONS.alertOctagon : ICONS.shieldCheck}</span>
             <div class="banner-text">
               <span class="banner-kicker">APPLICATION SAFETY AUDIT</span>
               <h3 class="banner-title">${isSuspicious?'DANGEROUS / MALICIOUS APK':'VERIFIED OFFICIAL BROKER PACKAGE'}</h3>
@@ -1056,7 +1303,7 @@ async function runDemo(){
           
           <div class="mobile-findings-list">
             <div class="finding-card ${isSuspicious?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">📦</span>
+              <span class="finding-icon">${ICONS.apk}</span>
               <div class="finding-content">
                 <b>Package Identifier</b>
                 <span><code>${escapeHtml(apkR.package_name||selectedFile.name)}</code></span>
@@ -1064,7 +1311,7 @@ async function runDemo(){
             </div>
             
             <div class="finding-card ${isSuspicious?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">${isSuspicious?'⚠️':'✅'}</span>
+              <span class="finding-icon">${isSuspicious ? ICONS.alertTriangle : ICONS.checkCircle}</span>
               <div class="finding-content">
                 <b>Security Finding</b>
                 <span>${escapeHtml(apkR.reason||'Package verified within standard operational parameters.')}</span>
@@ -1073,7 +1320,7 @@ async function runDemo(){
             
             ${apkR.suspicious_permissions?.length?`
               <div class="finding-card finding-danger">
-                <span class="finding-icon">🚨</span>
+                <span class="finding-icon">${ICONS.alertOctagon}</span>
                 <div class="finding-content">
                   <b>High-Risk Trojan Permissions Flagged</b>
                   <span>${apkR.suspicious_permissions.map(p=>`<code>${escapeHtml(p)}</code>`).join(', ')}</span>
@@ -1083,21 +1330,55 @@ async function runDemo(){
           </div>
 
           <div class="mobile-conclusion-actions">
+            ${data.scores_complaint ? `
+              <button type="button" class="button btn-mobile-pdf" id="btn-apk-dl-pdf">
+                ${ICONS.fileText} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}
+              </button>
+            ` : ''}
             <button type="button" class="button btn-mobile-print" id="btn-apk-print">
-              <span>🖨️</span> Print / Save Application Dossier (PDF)
+              ${ICONS.printer} Print / Save Application Dossier (PDF)
             </button>
             <button type="button" class="button btn-mobile-copy" id="btn-apk-copy">
-              <span>📋</span> Copy Security Findings to Clipboard
+              ${ICONS.copy} Copy Security Findings to Clipboard
             </button>
           </div>
+
+          ${data.scores_complaint ? `
+            <details class="forensic-disclosure" open style="margin-top:16px">
+              <summary>
+                <span>${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? ICONS.shieldCheck : ICONS.landmark} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Statutory Forensic Clearance Memorandum' : 'Official Cyber Crime / SEBI Complaint Draft'}</span>
+                <span style="font-size:12px;color:var(--muted)">Certified Format ▾</span>
+              </summary>
+              <div class="forensic-disclosure-inner">
+                <pre class="forensic-complaint-pre">${escapeHtml(data.scores_complaint)}</pre>
+              </div>
+            </details>
+          ` : ''}
         </div>
       `;
       const apkPrint=$('#btn-apk-print',dlg);
       if(apkPrint)apkPrint.addEventListener('click',()=>window.print());
+      const apkPdf=$('#btn-apk-dl-pdf',dlg);
+      if(apkPdf && data.scores_complaint){
+        apkPdf.addEventListener('click',async ()=>{
+          try {
+            apkPdf.disabled = true;
+            apkPdf.innerHTML = `${ICONS.spinner} Generating PDF...`;
+            await downloadComplaintPdfBlob(data.scores_complaint, 'APK Application Safety Scan', isSuspicious ? 'Dangerous APK Flagged' : 'Clean / Authentic Application');
+          } catch(e) {
+            console.error(e);
+            showToast('PDF generation failed. Use print instead.');
+          } finally {
+            apkPdf.disabled = false;
+            const isClr = (data.scores_complaint||'').includes('CLEARANCE MEMORANDUM');
+            apkPdf.innerHTML = `${ICONS.fileText} ${isClr ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}`;
+          }
+        });
+      }
       const apkCopy=$('#btn-apk-copy',dlg);
       if(apkCopy){
         apkCopy.addEventListener('click',async ()=>{
-          const textToCopy=`APK Package: ${apkR.package_name||selectedFile.name}\nFinding: ${apkR.reason||'OK'}\nSuspicious: ${isSuspicious?'YES':'NO'}`;
+          const textToCopy=data.scores_complaint||`APK Package: ${apkR.package_name||selectedFile.name}\nFinding: ${apkR.reason||'OK'}\nSuspicious: ${isSuspicious?'YES':'NO'}`;
           await navigator.clipboard.writeText(textToCopy);
           showToast('Security findings copied to clipboard!');
         });
@@ -1118,7 +1399,7 @@ async function runDemo(){
             <span class="tracker-pct">50%</span>
           </div>
           <div class="tracker-meter"><div class="tracker-meter-fill" style="width:50%"></div></div>
-          <div class="tracker-active-sub">⚡ Verifying domain age, SSL telemetry, and registered SEBI broker domains</div>
+          <div class="tracker-active-sub"><span class="fg-beacon beacon-active"></span> Verifying domain age, SSL telemetry, and registered SEBI broker domains</div>
         </div>
       `;
       setTimeout(()=>{ dlg.scrollTo({top:out.offsetTop-30,behavior:'smooth'}); }, 50);
@@ -1136,7 +1417,7 @@ async function runDemo(){
       out.innerHTML=`
         <div class="mobile-conclusion-card" id="workspace-result-card">
           <div class="mobile-verdict-banner ${isPhishing?'banner-critical':'banner-safe'}">
-            <span class="banner-icon">${isPhishing?'🚨':'✅'}</span>
+            <span class="banner-icon">${isPhishing ? ICONS.alertOctagon : ICONS.shieldCheck}</span>
             <div class="banner-text">
               <span class="banner-kicker">DOMAIN REPUTATION VERDICT</span>
               <h3 class="banner-title">${isPhishing?'PHISHING / FAKE BROKER DETECTED':'CLEAN / LEGITIMATE DOMAIN'}</h3>
@@ -1145,7 +1426,7 @@ async function runDemo(){
           
           <div class="mobile-findings-list">
             <div class="finding-card ${isPhishing?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">🌐</span>
+              <span class="finding-icon">${ICONS.globe}</span>
               <div class="finding-content">
                 <b>Normalized Host</b>
                 <span><code>${escapeHtml(urlR.normalised_host||urlVal)}</code></span>
@@ -1153,7 +1434,7 @@ async function runDemo(){
             </div>
             
             <div class="finding-card ${isPhishing?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">${isPhishing?'⚠️':'✅'}</span>
+              <span class="finding-icon">${isPhishing ? ICONS.alertTriangle : ICONS.checkCircle}</span>
               <div class="finding-content">
                 <b>Forensic Finding</b>
                 <span>${escapeHtml(urlR.reason||'Domain verification completed.')}</span>
@@ -1162,7 +1443,7 @@ async function runDemo(){
             
             ${urlR.matched_legitimate_domain?`
               <div class="finding-card finding-danger">
-                <span class="finding-icon">🚨</span>
+                <span class="finding-icon">${ICONS.alertOctagon}</span>
                 <div class="finding-content">
                   <b>Spoofed Genuine SEBI Entity</b>
                   <span>Targeted Broker: <b>${escapeHtml(urlR.legitimate_broker)}</b> (<code>${escapeHtml(urlR.matched_legitimate_domain)}</code>)</span>
@@ -1172,21 +1453,55 @@ async function runDemo(){
           </div>
 
           <div class="mobile-conclusion-actions">
+            ${data.scores_complaint ? `
+              <button type="button" class="button btn-mobile-pdf" id="btn-url-dl-pdf">
+                ${ICONS.fileText} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}
+              </button>
+            ` : ''}
             <button type="button" class="button btn-mobile-print" id="btn-url-print">
-              <span>🖨️</span> Print / Save Domain Dossier (PDF)
+              ${ICONS.printer} Print / Save Domain Dossier (PDF)
             </button>
             <button type="button" class="button btn-mobile-copy" id="btn-url-copy">
-              <span>📋</span> Copy Domain Findings to Clipboard
+              ${ICONS.copy} Copy Domain Findings to Clipboard
             </button>
           </div>
+
+          ${data.scores_complaint ? `
+            <details class="forensic-disclosure" open style="margin-top:16px">
+              <summary>
+                <span>${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? ICONS.shieldCheck : ICONS.landmark} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Statutory Forensic Clearance Memorandum' : 'Official Cyber Crime / SEBI Complaint Draft'}</span>
+                <span style="font-size:12px;color:var(--muted)">Certified Format ▾</span>
+              </summary>
+              <div class="forensic-disclosure-inner">
+                <pre class="forensic-complaint-pre">${escapeHtml(data.scores_complaint)}</pre>
+              </div>
+            </details>
+          ` : ''}
         </div>
       `;
       const urlPrint=$('#btn-url-print',dlg);
       if(urlPrint)urlPrint.addEventListener('click',()=>window.print());
+      const urlPdf=$('#btn-url-dl-pdf',dlg);
+      if(urlPdf && data.scores_complaint){
+        urlPdf.addEventListener('click',async ()=>{
+          try {
+            urlPdf.disabled = true;
+            urlPdf.innerHTML = `${ICONS.spinner} Generating PDF...`;
+            await downloadComplaintPdfBlob(data.scores_complaint, 'URL Phishing Scan', isPhishing ? 'Phishing Domain Flagged' : 'Verified Broker Domain');
+          } catch(e) {
+            console.error(e);
+            showToast('PDF generation failed. Use print instead.');
+          } finally {
+            urlPdf.disabled = false;
+            const isClr = (data.scores_complaint||'').includes('CLEARANCE MEMORANDUM');
+            urlPdf.innerHTML = `${ICONS.fileText} ${isClr ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}`;
+          }
+        });
+      }
       const urlCopy=$('#btn-url-copy',dlg);
       if(urlCopy){
         urlCopy.addEventListener('click',async ()=>{
-          const textToCopy=`Host: ${urlR.normalised_host||urlVal}\nPhishing: ${isPhishing?'YES':'NO'}\nFinding: ${urlR.reason||'OK'}`;
+          const textToCopy=data.scores_complaint||`Host: ${urlR.normalised_host||urlVal}\nPhishing: ${isPhishing?'YES':'NO'}\nFinding: ${urlR.reason||'OK'}`;
           await navigator.clipboard.writeText(textToCopy);
           showToast('Domain findings copied to clipboard!');
         });
@@ -1207,7 +1522,7 @@ async function runDemo(){
             <span class="tracker-pct">50%</span>
           </div>
           <div class="tracker-meter"><div class="tracker-meter-fill" style="width:50%"></div></div>
-          <div class="tracker-active-sub">⚡ Auditing against SEBI IA Regulations 2013 and BNS 2023 Sec 318(4)</div>
+          <div class="tracker-active-sub"><span class="fg-beacon beacon-active"></span> Auditing against SEBI IA Regulations 2013 and BNS 2023 Sec 318(4)</div>
         </div>
       `;
       setTimeout(()=>{ dlg.scrollTo({top:out.offsetTop-30,behavior:'smooth'}); }, 50);
@@ -1225,7 +1540,7 @@ async function runDemo(){
       out.innerHTML=`
         <div class="mobile-conclusion-card" id="workspace-result-card">
           <div class="mobile-verdict-banner ${isScam?'banner-warning':'banner-safe'}">
-            <span class="banner-icon">${isScam?'⚠️':'✅'}</span>
+            <span class="banner-icon">${isScam ? ICONS.alertTriangle : ICONS.shieldCheck}</span>
             <div class="banner-text">
               <span class="banner-kicker">STATUTORY COMPLIANCE VERDICT</span>
               <h3 class="banner-title">${escapeHtml(data.verdict||'Review Completed').toUpperCase()}</h3>
@@ -1249,15 +1564,15 @@ async function runDemo(){
           
           <div class="mobile-findings-list">
             <div class="finding-card ${data.sebi_analysis?.specific_return_promises?.length?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">🏛️</span>
+              <span class="finding-icon">${ICONS.landmark}</span>
               <div class="finding-content">
                 <b>SEBI IA Regulation 15 Audit</b>
-                <span>${data.sebi_analysis?.specific_return_promises?.length?'❌ Guaranteed Return Promises Prohibited by SEBI':'✅ No Prohibited Fixed Returns Promised'}</span>
+                <span>${data.sebi_analysis?.specific_return_promises?.length ? `<span class="fg-status-tag tag-danger">${ICONS.xCircle} Guaranteed Return Promises Prohibited by SEBI</span>` : `<span class="fg-status-tag tag-safe">${ICONS.checkCircle} No Prohibited Fixed Returns Promised</span>`}</span>
               </div>
             </div>
             
             <div class="finding-card ${isScam?'finding-danger':'finding-ok'}">
-              <span class="finding-icon">⚖️</span>
+              <span class="finding-icon">${ICONS.scale}</span>
               <div class="finding-content">
                 <b>Criminal Penal Code Match</b>
                 <span>${isScam?'BNS Sec 318(4) (Cheating) & IT Act Sec 66D (Impersonation)':'No Criminal Penal Offence Flagged'}</span>
@@ -1275,24 +1590,24 @@ async function runDemo(){
           <div class="mobile-conclusion-actions">
             ${data.scores_complaint ? `
               <button type="button" class="button btn-mobile-pdf" id="btn-comp-dl-pdf">
-                <span>📄</span> Download Certified Court Complaint (PDF)
+                ${ICONS.fileText} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}
               </button>
             ` : ''}
             <button type="button" class="button btn-mobile-print" id="btn-comp-print">
-              <span>🖨️</span> Print / Save Compliance Dossier (PDF)
+              ${ICONS.printer} Print / Save Compliance Dossier (PDF)
             </button>
             <button type="button" class="button btn-mobile-copy" id="btn-comp-dl-txt">
-              <span>💾</span> Download Plaintext (.TXT) Report
+              ${ICONS.download} Download Plaintext (.TXT) Report
             </button>
             <button type="button" class="button btn-mobile-copy" id="btn-comp-copy">
-              <span>📋</span> Copy Text Findings to Clipboard
+              ${ICONS.copy} Copy Findings to Clipboard
             </button>
           </div>
 
           ${data.scores_complaint ? `
             <details class="forensic-disclosure" open style="margin-top:16px">
               <summary>
-                <span>🏛️ Official SEBI SCORES 2.0 Complaint Draft</span>
+                <span>${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? ICONS.shieldCheck : ICONS.landmark} ${(data.scores_complaint||'').includes('CLEARANCE MEMORANDUM') ? 'Statutory Forensic Clearance Memorandum' : 'Official SEBI SCORES 2.0 Complaint Draft'}</span>
                 <span style="font-size:12px;color:var(--muted)">Certified Format ▾</span>
               </summary>
               <div class="forensic-disclosure-inner">
@@ -1311,33 +1626,15 @@ async function runDemo(){
         pdfBtn.addEventListener('click', async () => {
           try {
             pdfBtn.disabled = true;
-            pdfBtn.innerHTML = '<span>⏳</span> Generating Institutional PDF...';
-            const pdfResp = await fetch('/api/complaint/pdf', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                complaint_text: data.scores_complaint,
-                mode: 'Financial Claim Compliance Scan',
-                verdict: data.verdict
-              })
-            });
-            if (!pdfResp.ok) throw new Error('PDF generation failed');
-            const blob = await pdfResp.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `FinGuard_SEBI_SCORES_Complaint_${Date.now()}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('Complaint PDF downloaded successfully!');
+            pdfBtn.innerHTML = `${ICONS.spinner} Generating Institutional PDF...`;
+            await downloadComplaintPdfBlob(data.scores_complaint, 'Financial Claim Compliance Scan', data.verdict);
           } catch (e) {
             console.error(e);
             showToast('PDF generation failed. Use print instead.');
           } finally {
             pdfBtn.disabled = false;
-            pdfBtn.innerHTML = '<span>📄</span> Download Certified Court Complaint (PDF)';
+            const isClr = (data.scores_complaint||'').includes('CLEARANCE MEMORANDUM');
+            pdfBtn.innerHTML = `${ICONS.fileText} ${isClr ? 'Download Certified Clearance (PDF)' : 'Download Certified Court Complaint (PDF)'}`;
           }
         });
       }
@@ -1365,10 +1662,10 @@ async function runDemo(){
           try {
             const textToCopy = data.scores_complaint || data.sebi_analysis?.reasoning || claimVal;
             await navigator.clipboard.writeText(textToCopy);
-            copyBtn.innerHTML = '<span>✓</span> Copied to Clipboard!';
+            copyBtn.innerHTML = `${ICONS.check} Copied to Clipboard!`;
             showToast('Text copied to clipboard!');
             setTimeout(() => {
-              copyBtn.innerHTML = '<span>📋</span> Copy Text Findings to Clipboard';
+              copyBtn.innerHTML = `${ICONS.copy} Copy Text Findings to Clipboard`;
             }, 3000);
           } catch {
             showToast('Unable to copy automatically.');
@@ -1382,28 +1679,31 @@ async function runDemo(){
       },100);
     }
   } catch (err){
-    console.error('[FinGuard Frontend Error]',err);
-    out.innerHTML=`
-      <div class="mobile-conclusion-card" id="workspace-result-card" style="border-color:#fca5a5">
-        <div class="mobile-verdict-banner banner-critical">
-          <span class="banner-icon">⚠️</span>
-          <div class="banner-text">
-            <span class="banner-kicker">ANALYSIS NOTICE</span>
-            <h3 class="banner-title">Error During Verification</h3>
-          </div>
+    console.error('[FinGuard Frontend Error]', err);
+    dlgContent.className = 'dialog-content';
+    dlgContent.innerHTML = `
+      <div class="analyzing-error-card">
+        <div class="analyzing-error-head">
+          <span class="error-badge-icon">${ICONS.alertTriangle}</span>
+          <h3>Forensic Analysis Notice</h3>
         </div>
-        <p style="font-size:14px;color:#991b1b;margin:0 0 10px">${escapeHtml(err.message||'Could not connect to FinGuard forensic server.')}</p>
-        <small style="font-size:12px;color:#64748b">Please ensure your device is connected to the internet and retry.</small>
+        <p class="analyzing-error-msg">${escapeHtml(err.message || 'Could not complete verification on FinGuard forensic server.')}</p>
+        <button type="button" class="button button-blue" id="btn-back-to-upload" style="margin-top:14px;min-height:46px;padding:8px 24px">
+          ${ICONS.arrowLeft} Back to Upload
+        </button>
       </div>
     `;
-    setTimeout(()=>{
-      const card=$('#workspace-result-card',dlg);
-      if(card) card.scrollIntoView({behavior:'smooth',block:'start'});
-      else dlg.scrollTo({top:out.offsetTop-30,behavior:'smooth'});
-    },100);
+    $('#btn-back-to-upload', dlg)?.addEventListener('click', () => {
+      const prevFile = selectedFile;
+      renderWorkspace();
+      if (prevFile) setFile(prevFile);
+    });
   } finally {
-    btn.disabled=false;
-    btn.innerHTML=originalBtnText;
+    const runBtn = $('#run-demo', dlg);
+    if (runBtn) {
+      runBtn.disabled = false;
+      runBtn.innerHTML = originalBtnText;
+    }
   }
 }
 
@@ -1411,6 +1711,7 @@ track.addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(b)
 function closeWorkspace(){
   dlg.hidden=true;
   document.body.classList.remove('dialog-open');
+  dlgContent.className='dialog-content';
   if(previewUrl)URL.revokeObjectURL(previewUrl);
   previewUrl=null;
   selectedFile=null;
@@ -1441,7 +1742,7 @@ async function checkDirectJobLoad() {
           <span class="tracker-pct">100%</span>
         </div>
         <div class="tracker-meter"><div class="tracker-meter-fill" style="width:100%"></div></div>
-        <div class="tracker-active-sub">⚡ Fetching complete multimodal analysis for Job ID <code>${escapeHtml(jobId)}</code></div>
+        <div class="tracker-active-sub"><span class="fg-beacon beacon-active"></span> Fetching complete multimodal analysis for Job ID <code>${escapeHtml(jobId)}</code></div>
       </div>
     `;
 
@@ -1454,7 +1755,7 @@ async function checkDirectJobLoad() {
       out.innerHTML = `
         <div class="mobile-conclusion-card" id="workspace-result-card" style="border-color:#fca5a5">
           <div class="mobile-verdict-banner banner-warning">
-            <span class="banner-icon">⏳</span>
+            <span class="banner-icon">${ICONS.clock}</span>
             <div class="banner-text">
               <span class="banner-kicker">ANALYSIS STATUS</span>
               <h3 class="banner-title">Job is ${escapeHtml(checkData.status)}</h3>
