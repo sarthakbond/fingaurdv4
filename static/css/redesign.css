@@ -1,30 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* ── Color Hunt Palette: #790d16, #e5d3af, #f5efe1, #aec4d4 ─────────── */
-  --blue: #790d16;          /* Deep Burgundy Primary */
-  --blue-hover: #5e0910;    /* Dark Crimson Hover */
-  --blue-shadow: #3f050a;   /* 3D Button Shadow */
-  --navy: #240609;          /* Deep Burgundy Charcoal (Dark Headings & Nav) */
-  --navy-light: #440d12;    /* Medium Wine for Interactive Elements */
-  --bright: #aec4d4;        /* Soft Sky Slate Accent */
-  --yellow: #b88628;        /* Warm Gold from Sand tone */
-  --yellow-bg: #f9f4ea;     /* Sand Gold Light Tint */
-  --green: #790d16;         /* Primary Brand Crimson */
-  --forest: #5e0910;        /* Deep Wine Crimson */
-  --paper: #f5efe1;         /* Warm Ivory Cream Canvas (from Palette) */
+  /* ── Old-School Stock Market: Forest Green & Cream ─────────── */
+  /* Swatches: #173F35 (Forest), #2E6653 (Green), #C8A96B (Brass), #F3EBDD (Cream), #282B28 (Charcoal) */
+  --forest: #173f35;        /* Deep Forest Green Primary */
+  --green: #2e6653;         /* Medium Emerald Stock Market Green */
+  --brass: #c8a96b;         /* Warm Metallic Brass Accent */
+  --cream: #f3ebdd;         /* Rich Cream Paper / Canvas */
+  --charcoal: #282b28;      /* Deep Crisp Charcoal Ink */
+
+  --blue: #173f35;          /* Forest Green Primary */
+  --blue-hover: #102d26;    /* Dark Forest Hover */
+  --blue-shadow: #0a1c17;   /* 3D Button Shadow */
+  --navy: #173f35;          /* Forest Headings & Nav */
+  --navy-light: #2e6653;    /* Stock Market Green Interactive Elements */
+  --bright: #2e6653;        /* Stock Market Green */
+  --yellow: #c8a96b;        /* Warm Brass Accent */
+  --yellow-bg: #faf4e8;     /* Brass / Cream Light Tint */
+  --paper: #f3ebdd;         /* Warm Cream Canvas */
   --surface: #ffffff;       /* Pure Crisp White Card Surface */
-  --grey: #ede5d3;          /* Warm Sand-Tinted Neutral Background */
-  --sand: #e5d3af;          /* Champagne Sand Accent (from Palette) */
-  --sand-light: #faf5eb;    /* Sand Light Card Tint */
-  --sky: #aec4d4;           /* Soft Sky Slate (from Palette) */
-  --sky-light: #eef4f8;     /* Sky Slate Tint */
-  --sky-border: #8eaec3;    /* Sky Slate Border */
-  --ink: #1f1415;           /* Deep Charcoal with slight warm wine undertone for crisp readability */
-  --muted: #5e4c48;         /* High-contrast Warm Slate for secondary copy */
-  --line: #e2d5be;          /* Warm Sand Border Lines */
+  --grey: #eae1d0;          /* Warm Cream Neutral Background */
+  --sand: #c8a96b;          /* Brass Accent */
+  --sand-light: #faf4e8;    /* Brass Light Card Tint */
+  --sky: #2e6653;           /* Stock Market Green */
+  --sky-light: #eaf2ed;     /* Soft Mint / Pale Green Tint */
+  --sky-border: #9ec1b4;    /* Subtle Sage Border */
+  --ink: #282b28;           /* Deep Charcoal Text */
+  --muted: #565d56;         /* High-contrast Sage/Charcoal for secondary copy */
+  --line: #ded3c1;          /* Warm Cream Border Lines */
   --white: #ffffff;
-  --shadow: 0 18px 48px rgba(36, 6, 9, 0.08);
+  --shadow: 0 18px 48px rgba(23, 63, 53, 0.09);
   --serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -2057,18 +2062,18 @@ body.dialog-open::before {
 }
 .mobile-verdict-banner.banner-critical {
   background: #fdf2f2;
-  border: 1.5px solid #790d16;
-  color: #790d16;
+  border: 1.5px solid #b91c1c;
+  color: #991b1b;
 }
 .mobile-verdict-banner.banner-warning {
   background: #fdfaf3;
-  border: 1.5px solid #e5d3af;
+  border: 1.5px solid #c8a96b;
   color: #855314;
 }
 .mobile-verdict-banner.banner-safe {
-  background: #f8faf9;
-  border: 1.5px solid #aec4d4;
-  color: #166534;
+  background: #edf7f2;
+  border: 1.5px solid #2e6653;
+  color: #173f35;
 }
 .banner-icon {
   font-size: 30px;
@@ -2141,12 +2146,12 @@ body.dialog-open::before {
   border-radius: 6px;
   transition: width .7s ease;
 }
-.fill-critical { background: linear-gradient(90deg, #790d16, #9e1420); }
-.fill-warning { background: linear-gradient(90deg, #b88628, #e5d3af); }
-.fill-safe { background: linear-gradient(90deg, #15803d, #16a34a); }
-.color-critical { color: #790d16; }
-.color-warning { color: #b88628; }
-.color-safe { color: #166534; }
+.fill-critical { background: linear-gradient(90deg, #b91c1c, #dc2626); }
+.fill-warning { background: linear-gradient(90deg, #c8a96b, #dfc488); }
+.fill-safe { background: linear-gradient(90deg, #173f35, #2e6653); }
+.color-critical { color: #b91c1c; }
+.color-warning { color: #855314; }
+.color-safe { color: #173f35; }
 
 .mobile-findings-list {
   display: flex;
@@ -2169,12 +2174,12 @@ body.dialog-open::before {
   border-color: #fecdd3;
 }
 .finding-card.finding-ok {
-  background: #f8faf9;
-  border-color: #e5d3af;
+  background: #edf7f2;
+  border-color: #c8a96b;
 }
 .finding-card.finding-info {
   background: #f8fafc;
-  border-color: #aec4d4;
+  border-color: #9ec1b4;
 }
 .finding-icon {
   font-size: 18px;
@@ -2209,12 +2214,12 @@ body.dialog-open::before {
   font-weight: 800;
   letter-spacing: .06em;
   text-transform: uppercase;
-  color: #790d16;
+  color: #173f35;
   margin-bottom: 4px;
 }
 .mobile-summary-box p {
   font-size: 13.5px;
-  color: #1f1415;
+  color: #282b28;
   line-height: 1.5;
   margin: 0;
 }
@@ -2227,7 +2232,7 @@ body.dialog-open::before {
 .btn-mobile-pdf {
   width: 100%;
   min-height: 52px;
-  background: #790d16 !important;
+  background: #173f35 !important;
   color: #ffffff !important;
   font-size: 14.5px !important;
   font-weight: 700 !important;
@@ -2238,19 +2243,19 @@ body.dialog-open::before {
   gap: 10px !important;
   text-decoration: none !important;
   border: 0 !important;
-  box-shadow: 0 4px 14px rgba(121, 13, 22, 0.35) !important;
+  box-shadow: 0 4px 14px rgba(23, 63, 53, 0.35) !important;
   text-align: center !important;
   transition: transform .15s ease, background .15s ease !important;
   cursor: pointer;
 }
 .btn-mobile-pdf:hover, .btn-mobile-pdf:active {
-  background: #5e0910 !important;
+  background: #102d26 !important;
   transform: translateY(-1px);
 }
 .btn-mobile-secondary {
   width: 100%;
   min-height: 50px;
-  background: #240609 !important;
+  background: #282b28 !important;
   color: #ffffff !important;
   font-size: 14px !important;
   font-weight: 700 !important;
@@ -2265,13 +2270,13 @@ body.dialog-open::before {
   cursor: pointer;
 }
 .btn-mobile-secondary:hover, .btn-mobile-secondary:active {
-  background: #3d070e !important;
+  background: #173f35 !important;
 }
 .btn-mobile-print {
   width: 100%;
   min-height: 48px;
-  background: #aec4d4 !important;
-  color: #1a2f3f !important;
+  background: #2e6653 !important;
+  color: #ffffff !important;
   font-size: 14px !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
@@ -2279,18 +2284,18 @@ body.dialog-open::before {
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
-  border: 1px solid #8eaec3 !important;
+  border: 1px solid #173f35 !important;
   cursor: pointer !important;
   text-align: center !important;
 }
 .btn-mobile-print:hover {
-  background: #9ab3c6 !important;
+  background: #173f35 !important;
 }
 .btn-mobile-copy {
   width: 100%;
   min-height: 48px;
-  background: #faf5eb !important;
-  color: #790d16 !important;
+  background: #faf4e8 !important;
+  color: #173f35 !important;
   font-size: 13.5px !important;
   font-weight: 700 !important;
   border-radius: 8px !important;
@@ -2298,12 +2303,13 @@ body.dialog-open::before {
   align-items: center !important;
   justify-content: center !important;
   gap: 8px !important;
-  border: 1.5px solid #e5d3af !important;
+  border: 1.5px solid #c8a96b !important;
   cursor: pointer !important;
   text-align: center !important;
 }
 .btn-mobile-copy:active {
-  background: #e5d3af !important;
+  background: #c8a96b !important;
+  color: #173f35 !important;
   transform: scale(0.99);
 }
 
@@ -2314,10 +2320,10 @@ body.dialog-open::before {
   border: 1.5px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(36, 6, 9, 0.08);
+  box-shadow: 0 4px 20px rgba(23, 63, 53, 0.08);
 }
 .detailed-forensic-header {
-  background: linear-gradient(135deg, #240609, #790d16);
+  background: linear-gradient(135deg, #173f35, #2e6653);
   color: #ffffff;
   padding: 16px 20px;
   display: flex;
@@ -2332,7 +2338,7 @@ body.dialog-open::before {
   font-weight: 800;
   letter-spacing: .12em;
   text-transform: uppercase;
-  color: #e5d3af;
+  color: #c8a96b;
   margin-bottom: 2px;
 }
 .detailed-title {
@@ -2342,9 +2348,9 @@ body.dialog-open::before {
   color: #ffffff;
 }
 .detailed-badge {
-  background: rgba(229, 211, 175, 0.2);
-  border: 1px solid #e5d3af;
-  color: #f5efe1;
+  background: rgba(200, 169, 107, 0.2);
+  border: 1px solid #c8a96b;
+  color: #f3ebdd;
   padding: 3px 10px;
   border-radius: 20px;
   font-size: 11.5px;
@@ -2355,7 +2361,7 @@ body.dialog-open::before {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: #faf7f0;
+  background: #fbf8f2;
 }
 
 /* Modality Breakdown Cards */
@@ -2391,19 +2397,19 @@ body.dialog-open::before {
   padding: 2px 8px;
   border-radius: 4px;
 }
-.badge-danger { background: #fee2e2; color: #790d16; border: 1px solid #fecdd3; }
-.badge-warning { background: #faf4e8; color: #855314; border: 1px solid #e5d3af; }
-.badge-safe { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+.badge-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fecdd3; }
+.badge-warning { background: #faf4e8; color: #855314; border: 1px solid #c8a96b; }
+.badge-safe { background: #edf7f2; color: #173f35; border: 1px solid #9ec1b4; }
 .badge-idle { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
 
 .forensic-modality-status {
   font-size: 12.5px;
   font-weight: 700;
-  color: #1f1415;
+  color: #282b28;
 }
 .forensic-modality-desc {
   font-size: 12px;
-  color: #5e4c48;
+  color: #565d56;
   line-height: 1.45;
 }
 .forensic-detail-dl {
@@ -2419,8 +2425,8 @@ body.dialog-open::before {
   align-items: center;
   font-size: 11.5px;
 }
-.forensic-detail-row dt { color: #5e4c48; margin: 0; }
-.forensic-detail-row dd { color: #1f1415; font-weight: 700; margin: 0; }
+.forensic-detail-row dt { color: #565d56; margin: 0; }
+.forensic-detail-row dd { color: #282b28; font-weight: 700; margin: 0; }
 
 /* Disclosures / Accordions */
 .forensic-disclosure {
@@ -2431,7 +2437,7 @@ body.dialog-open::before {
   transition: border-color .15s ease;
 }
 .forensic-disclosure[open] {
-  border-color: #790d16;
+  border-color: #173f35;
 }
 .forensic-disclosure summary {
   padding: 13px 16px;
@@ -2447,7 +2453,7 @@ body.dialog-open::before {
   transition: background .15s ease;
 }
 .forensic-disclosure summary:hover {
-  background: #faf5eb;
+  background: #faf4e8;
 }
 .forensic-disclosure-inner {
   padding: 16px 18px 20px;
@@ -2492,7 +2498,7 @@ body.dialog-open::before {
   gap: 12px;
   align-items: baseline;
   padding: 8px 10px;
-  background: #faf5eb;
+  background: #faf4e8;
   border-radius: 6px;
   font-size: 13px;
   line-height: 1.5;
@@ -2501,14 +2507,14 @@ body.dialog-open::before {
   font-family: monospace;
   font-size: 11.5px;
   font-weight: 700;
-  color: #790d16;
-  background: #fdf2f2;
+  color: #173f35;
+  background: #eaf2ed;
   padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
 }
 .forensic-transcript-list span {
-  color: #1f1415;
+  color: #282b28;
 }
 
 /* Timeline List */
@@ -2525,9 +2531,9 @@ body.dialog-open::before {
   grid-template-columns: minmax(85px, auto) 1fr;
   gap: 12px;
   padding: 10px 12px;
-  background: #faf5eb;
+  background: #faf4e8;
   border-radius: 6px;
-  border-left: 3px solid #790d16;
+  border-left: 3px solid #173f35;
 }
 .timeline-badge {
   display: inline-block;
@@ -2538,12 +2544,12 @@ body.dialog-open::before {
   margin-right: 6px;
   margin-bottom: 4px;
 }
-.timeline-badge.audio-badge { background: #fee2e2; color: #790d16; }
-.timeline-badge.text-badge { background: #faf4e8; color: #855314; border: 1px solid #e5d3af; }
+.timeline-badge.audio-badge { background: #fee2e2; color: #b91c1c; }
+.timeline-badge.text-badge { background: #faf4e8; color: #855314; border: 1px solid #c8a96b; }
 .timeline-quote {
   font-size: 12.5px;
   font-style: italic;
-  color: #1f1415;
+  color: #282b28;
   display: block;
   margin-top: 4px;
 }
@@ -2561,7 +2567,7 @@ body.dialog-open::before {
   text-align: left;
 }
 .forensic-evidence-table th {
-  background: #240609;
+  background: #173f35;
   color: #ffffff;
   padding: 10px 12px;
   font-size: 11px;
@@ -2572,14 +2578,14 @@ body.dialog-open::before {
 .forensic-evidence-table td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--line);
-  color: #1f1415;
+  color: #282b28;
   vertical-align: top;
 }
 .forensic-evidence-table tr:last-child td {
   border-bottom: 0;
 }
 .forensic-evidence-table tr:nth-child(even) {
-  background: #faf7f0;
+  background: #fbf8f2;
 }
 
 /* Statutory Violations Cards */
@@ -2591,7 +2597,7 @@ body.dialog-open::before {
 .statutory-card {
   background: #fff;
   border: 1px solid var(--line);
-  border-left: 4px solid #790d16;
+  border-left: 4px solid #173f35;
   border-radius: 6px;
   padding: 12px 14px;
 }
@@ -2603,7 +2609,7 @@ body.dialog-open::before {
 }
 .statutory-card p {
   font-size: 11.5px;
-  color: #5e4c48;
+  color: #565d56;
   margin: 0;
   line-height: 1.45;
 }
@@ -2622,7 +2628,7 @@ body.dialog-open::before {
   gap: 12px;
   align-items: flex-start;
   padding: 10px 12px;
-  background: #faf5eb;
+  background: #faf4e8;
   border-radius: 6px;
   border: 1px solid var(--line);
 }
@@ -2630,7 +2636,7 @@ body.dialog-open::before {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #790d16;
+  background: #173f35;
   color: #fff;
   display: grid;
   place-items: center;
@@ -2646,15 +2652,15 @@ body.dialog-open::before {
 }
 .forensic-step-desc {
   font-size: 12px;
-  color: #5e4c48;
+  color: #565d56;
   margin: 0;
   line-height: 1.4;
 }
 
 /* Complaint Box */
 .forensic-complaint-pre {
-  background: #1f1415;
-  color: #f5efe1;
+  background: #282b28;
+  color: #f3ebdd;
   padding: 16px;
   border-radius: 8px;
   font-family: monospace;

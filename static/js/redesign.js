@@ -1,9 +1,9 @@
 import {tools,stats,queries,lessons,quiz} from './demo-data.js';
 import {toViewModel} from './model.js';
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)], fmt=n=>new Intl.NumberFormat('en-IN').format(n);
-const palette={blue:'#790d16',green:'#8b1e28',yellow:'#b88628',navy:'#240609',sand:'#e5d3af',sky:'#aec4d4'};
+const palette={blue:'#173f35',green:'#2e6653',yellow:'#c8a96b',navy:'#173f35',sand:'#c8a96b',sky:'#2e6653'};
 const track=$('#carousel-track'),dots=$('#carousel-dots');let active=0,startX=0,dragX=0;
-track.innerHTML=tools.map((t,i)=>`<article class="tool-card" data-card="${i}" style="--card-color:${palette[t.tone]||'#790d16'};--icon-bg:${t.tone==='yellow'?'#fdf9ee':t.tone==='green'?'#f5efe1':'#f5efe1'}"><div class="tool-card-visual" aria-hidden="true"><span class="visual-orbit visual-orbit-one"></span><span class="visual-orbit visual-orbit-two"></span><span class="visual-index">0${i+1}</span><div class="visual-icon">${t.icon}</div><span class="visual-seal">VERIFY<br>WITH CARE</span><span class="visual-caption">PRIVATE DEMO · FRONTEND ONLY</span></div><div class="tool-card-copy"><div class="card-meta"><span class="tool-type">${t.type}</span><span class="card-index">0${i+1} / 05</span></div><h3>${t.title}</h3><p>${t.desc}</p><button class="card-action" data-tool="${t.id}"><span class="action-label">${t.action}</span><span class="action-arrow">→</span></button><span class="card-footnote">Local interactive preview</span></div></article>`).join('');
+track.innerHTML=tools.map((t,i)=>`<article class="tool-card" data-card="${i}" style="--card-color:${palette[t.tone]||'#173f35'};--icon-bg:${t.tone==='yellow'?'#faf4e8':t.tone==='green'?'#edf7f2':'#f3ebdd'}"><div class="tool-card-visual" aria-hidden="true"><span class="visual-orbit visual-orbit-one"></span><span class="visual-orbit visual-orbit-two"></span><span class="visual-index">0${i+1}</span><div class="visual-icon">${t.icon}</div><span class="visual-seal">VERIFY<br>WITH CARE</span><span class="visual-caption">PRIVATE DEMO · FRONTEND ONLY</span></div><div class="tool-card-copy"><div class="card-meta"><span class="tool-type">${t.type}</span><span class="card-index">0${i+1} / 05</span></div><h3>${t.title}</h3><p>${t.desc}</p><button class="card-action" data-tool="${t.id}"><span class="action-label">${t.action}</span><span class="action-arrow">→</span></button><span class="card-footnote">Local interactive preview</span></div></article>`).join('');
 dots.innerHTML=tools.map((_,i)=>`<button class="carousel-dot" data-dot="${i}" aria-label="Show tool ${i+1}" aria-current="${i===0}"></button>`).join('');
 const selector=$('#tool-selector'),shortNames=['Video','Audio','APK','URL','Compliance'];selector.innerHTML=tools.map((t,i)=>`<button class="tool-shortcut" type="button" data-shortcut="${i}" aria-current="${i===0}"><span class="shortcut-icon" aria-hidden="true">${t.icon}</span><span class="shortcut-name">${shortNames[i]}</span><span class="shortcut-number">0${i+1}</span></button>`).join('');
 function step(){return (track.children[0]?.getBoundingClientRect().width||0)+parseFloat(getComputedStyle(track).gap||18)}
@@ -215,7 +215,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
           <span style="font-size:12px;color:var(--muted)">Full Text ▾</span>
         </summary>
         <div class="forensic-disclosure-inner">
-          <p style="font-size:13.5px;line-height:1.6;color:#1f1415;margin:0;background:#faf5eb;padding:12px;border-radius:6px">
+          <p style="font-size:13.5px;line-height:1.6;color:#282b28;margin:0;background:#faf4e8;padding:12px;border-radius:6px">
             “${escapeHtml(raw.transcript)}”
           </p>
         </div>
@@ -236,7 +236,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
           <ul class="forensic-timeline-list">
             ${timeline.map(item => `
               <li>
-                <time style="font-family:monospace;font-size:11.5px;font-weight:700;color:#790d16">
+                <time style="font-family:monospace;font-size:11.5px;font-weight:700;color:#173f35">
                   ${fmtClock(item.start)} - ${fmtClock(item.end)}
                 </time>
                 <div>
@@ -282,8 +282,8 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
                     <td><b>${escapeHtml(e.kind || e.source || 'Claim')}</b></td>
                     <td><code>${e.timestamp !== null && e.timestamp !== undefined ? fmtClock(e.timestamp) : 'N/A'}</code></td>
                     <td>
-                      ${e.quote ? `<div style="font-style:italic;color:#790d16;margin-bottom:3px">“${escapeHtml(e.quote)}”</div>` : ''}
-                      <span style="color:#5e4c48;font-size:12px">${escapeHtml(e.title || e.body || '')}</span>
+                      ${e.quote ? `<div style="font-style:italic;color:#173f35;margin-bottom:3px">“${escapeHtml(e.quote)}”</div>` : ''}
+                      <span style="color:#565d56;font-size:12px">${escapeHtml(e.title || e.body || '')}</span>
                     </td>
                     <td>
                       <span class="forensic-modality-badge ${e.tier === 'critical' || e.tier === 'high' ? 'badge-danger' : e.tier === 'moderate' ? 'badge-warning' : 'badge-safe'}">
