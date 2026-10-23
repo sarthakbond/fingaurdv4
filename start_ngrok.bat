@@ -16,5 +16,5 @@ if exist "%LOCALAPPDATA%\Microsoft\WinGet\Packages\Ngrok.Ngrok_Microsoft.Winget.
     set "NGROK_CMD=%LOCALAPPDATA%\Microsoft\WinGet\Packages\Ngrok.Ngrok_Microsoft.Winget.Source_8wekyb3d8bbwe\ngrok.exe"
 )
 
-"%NGROK_CMD%" http 8000 --domain=nutcase-exodus-precinct.ngrok-free.dev
+"%NGROK_CMD%" http 8000 --url=nutcase-exodus-precinct.ngrok-free.dev
 pause

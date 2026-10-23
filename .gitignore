@@ -26,3 +26,7 @@ whatsapp_bridge/.wwebjs_cache/
 whatsapp_bridge/scan_qr.html
 whatsapp_bridge/qr_code.png
 
+# Tooling metadata
+.impeccable/
+
+

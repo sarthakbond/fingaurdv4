@@ -63,9 +63,9 @@ server:
   preload_models: false
 thresholds:
   apk_domain_levenshtein_max_dist: 3
-  audio_fake_threshold: 0.5
-  audio_segment_flag_threshold: 0.45
-  impersonation_audio_threshold: 0.45
+  audio_fake_threshold: 0.75
+  audio_segment_flag_threshold: 0.65
+  impersonation_audio_threshold: 0.65
   llm_risk_auto_flag_threshold: 0.45
   ocr_min_confidence: 0.15
   registry_name_number_match_score: 65
@@ -73,7 +73,7 @@ thresholds:
   scam_composite_threshold: 0.35
   scene_cut_threshold: 35.0
   sebi_risk_threshold: 0.7
-  vision_fake_threshold: 0.5
+  vision_fake_threshold: 0.75
 vision:
   consensus_min_frames: 3
   consensus_top_weight: 0.65
@@ -87,4 +87,4 @@ vision_detector:
   # To rollback to the FaceForensics++ c23 fine-tuned checkpoint, restore:
   # model_weights_file: experiments/deepfake_finetune/checkpoints/best_checkpoint_weights.pth
   model_weights_file: null
-  threshold: 0.6
+  threshold: 0.75

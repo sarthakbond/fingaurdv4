@@ -124,3 +124,34 @@ def test_provenance_separate_from_visual_manipulation():
 
     verdict = calculate_calibrated_verdict(is_deepfake, is_scam, composite_risk, registry_verdict="not claimed")
     assert verdict == "Safe"
+
+
+def test_aggregation_multiple_isolated_transient_spikes_suppression():
+    """
+    Validates that real videos with multiple non-consecutive transient optical/compression spikes
+    (e.g. keyframe macroblocks, rapid head movement) are recognized as transient artifacts
+    and attenuated so that the calibrated vision score stays comfortably below the fake threshold.
+    """
+    user_video_scores = [
+        0.0544, 0.1998, 0.0147, 0.1920, 0.1680,
+        0.1946, 0.9678, 0.0679, 0.1266, 0.9947,
+        0.2611, 0.0289, 0.0174, 0.7668, 0.2853
+    ]
+    mock_backend = MagicMock()
+    mock_backend.predict_frame.side_effect = user_video_scores
+    mock_backend.backend_name = "ms_eff_gcvit"
+    mock_backend.model_id = "test_model"
+    mock_backend.generate_heatmap.return_value = None
+
+    dummy_frames = [f"dummy_frame_{i}.jpg" for i in range(len(user_video_scores))]
+
+    with patch("os.path.exists", return_value=True):
+        with patch("src.stages.backends.get_vision_backend", return_value=mock_backend):
+            res = run_stage2_vision(dummy_frames, job_id="test_user_transient_spikes")
+
+    assert res["aggregation_mode"] == "isolated_outlier_attenuation"
+    assert res["max_score"] < 0.35  # Authentically safe (below 0.75 threshold)
+    assert res["raw_peak_score"] == 0.9947
+    assert res["aggregation_details"]["max_consecutive_high"] == 1
+    assert res["aggregation_details"]["high_ratio"] == 0.2
+    assert res["aggregation_details"]["mode"] == "isolated_outlier_attenuation"

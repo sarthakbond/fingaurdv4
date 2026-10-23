@@ -1,7 +1,9 @@
+export const ANDROID_ICON = `<svg class="fg-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="width:1.15em;height:1.15em;display:inline-block;vertical-align:middle"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4101 13.8533 8.081 12 8.081s-3.5902.3291-5.1367.8697L4.841 5.4477a.416.416 0 00-.5677-.1521.4157.4157 0 00-.152 1.5676l1.9973 3.4592C2.6889 12.1867 2 15.5383 2 19.2273h20c0-3.689-0.6889-7.0406-4.1185-8.9059"/></svg>`;
+
 export const tools = [
  {id:'video',icon:'▷',type:'VIDEO FORENSICS',title:'Video authenticity',desc:'Explore signals that can help you take a closer look at a suspicious video.',action:'Analyze video',tone:'blue',accept:'video/*'},
  {id:'audio',icon:'♫',type:'AUDIO FORENSICS',title:'Audio deepfake detection',desc:'An analysis workspace for checking a recording and reviewing acoustic signals.',action:'Check audio',tone:'green',accept:'audio/*'},
- {id:'apk',icon:'▣',type:'APPLICATION SAFETY',title:'APK security',desc:'Review an application file and learn what permission warnings can look like.',action:'Scan APK',tone:'yellow',accept:'.apk,application/vnd.android.package-archive'},
+ {id:'apk',icon:ANDROID_ICON,type:'APPLICATION SAFETY',title:'APK security',desc:'Review an application file and learn what permission warnings can look like.',action:'Scan APK',tone:'yellow',accept:'.apk,application/vnd.android.package-archive'},
  {id:'url',icon:'↗',type:'LINK SAFETY',title:'Phishing URL detection',desc:'Inspect a web address for common signs that deserve a second look.',action:'Check URL',tone:'navy'},
  {id:'compliance',icon:'§',type:'CLAIM REVIEW',title:'SEBI & financial compliance',desc:'Explore how a financial claim review could highlight language to verify.',action:'Verify compliance',tone:'blue'}
 ];

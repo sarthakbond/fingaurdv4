@@ -173,7 +173,18 @@ def run_stage2_vision(face_frames_paths: list, job_id: str):
             top_k_mean = float(np.mean(scores_sorted[:k]))
             anti_weight = round(1.0 - consensus_weight, 4)
             median_score = float(np.median(scores))
+            p75_score = float(np.percentile(scores, 75))
             high_ratio = sum(1 for s in scores if s >= threshold) / len(scores)
+
+            # Analyze temporal continuity: count maximum consecutive frames >= threshold
+            consecutive_high = 0
+            max_consecutive_high = 0
+            for s in scores:
+                if s >= threshold:
+                    consecutive_high += 1
+                    max_consecutive_high = max(max_consecutive_high, consecutive_high)
+                else:
+                    consecutive_high = 0
 
             # Temporal consensus aggregation with interpretable anomaly gating
             if early_exit_triggered:
@@ -182,14 +193,19 @@ def run_stage2_vision(face_frames_paths: list, job_id: str):
             elif len(scores) >= consensus_min_frames:
                 peak = float(scores_sorted[0])
                 s2 = float(scores_sorted[1]) if len(scores_sorted) > 1 else peak
-                # Isolated Outlier Spike: a single frame anomaly (e.g. camera flash, glare, rapid cut)
+                # Case A: Single-frame isolated outlier (e.g. camera flash, glare, rapid cut)
                 # where peak is elevated (>=0.40) but drops sharply to a clean frame 2 (peak - s2 >= 0.30, s2 < 0.20, median < 0.10).
-                # Rather than crushing multi-frame evidence with median, only single-frame outliers are attenuated.
                 if peak >= 0.40 and (peak - s2 >= 0.30) and s2 < 0.20 and median_score < 0.10:
                     consensus_score = float(0.35 * peak + 0.65 * s2)
                     aggregation_mode = "isolated_outlier_attenuation"
+                # Case B: Multiple isolated transient spikes (camera jitter / WhatsApp keyframe compression glitches)
+                # where peak exceeds threshold, but every spike is strictly isolated (no 2 consecutive high frames)
+                # and the vast majority of frames remain authentically clean (median < 0.35, p75 < 0.45).
+                elif peak >= threshold and max_consecutive_high <= 1 and median_score < 0.35 and p75_score < 0.45 and high_ratio <= 0.25:
+                    consensus_score = float(0.60 * p75_score + 0.40 * median_score)
+                    aggregation_mode = "isolated_outlier_attenuation"
                 else:
-                    # Sustained multi-frame consensus: combines top-k cluster and peak
+                    # Case C: Sustained multi-frame consensus: combines top-k cluster and peak
                     # without artificial median suppression that crushes subtle generative face-swaps.
                     consensus_score = float(consensus_weight * top_k_mean + anti_weight * max_s)
                     aggregation_mode = "sustained_consensus"
@@ -211,7 +227,9 @@ def run_stage2_vision(face_frames_paths: list, job_id: str):
                 "peak": float(round(max_s, 4)),
                 "top_k_mean": float(round(top_k_mean, 4)),
                 "median": float(round(median_score, 4)),
+                "p75": float(round(p75_score, 4)),
                 "high_ratio": float(round(high_ratio, 4)),
+                "max_consecutive_high": int(max_consecutive_high),
                 "early_exit_triggered": early_exit_triggered,
                 "frames_evaluated": len(scores)
             }

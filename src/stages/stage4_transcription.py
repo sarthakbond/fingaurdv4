@@ -2,7 +2,14 @@ import os
 import gc
 import re
 import torch
-from faster_whisper import WhisperModel
+try:
+    from faster_whisper import WhisperModel
+    _FASTER_WHISPER_AVAILABLE = True
+except Exception as _e_whisper:
+    WhisperModel = None
+    _FASTER_WHISPER_AVAILABLE = False
+    print(f"[FinGuard Warning] faster_whisper import warning: {_e_whisper}")
+
 
 from src.config import get_device, get_stage_config
 
@@ -103,6 +110,10 @@ def run_stage4_transcription(audio_path: str, job_id: str):
     
     if not audio_path or not os.path.exists(audio_path):
         print(f"[{job_id}] No audio track provided. Skipping transcription stage.")
+        return result
+
+    if not _FASTER_WHISPER_AVAILABLE or WhisperModel is None:
+        print(f"[{job_id}] faster-whisper is not available in environment. Skipping audio transcription.")
         return result
         
     def _do_transcribe(m_name, dev, ctype):

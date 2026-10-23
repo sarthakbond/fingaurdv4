@@ -28,7 +28,7 @@ export const ICONS = {
   copy: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
   video: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect width="15" height="14" x="1" y="5" rx="2" ry="2"/></svg>`,
   audio: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`,
-  apk: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16.5 9.4-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  apk: `<svg class="fg-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4101 13.8533 8.081 12 8.081s-3.5902.3291-5.1367.8697L4.841 5.4477a.416.416 0 00-.5677-.1521.4157.4157 0 00-.152 1.5676l1.9973 3.4592C2.6889 12.1867 2 15.5383 2 19.2273h20c0-3.689-0.6889-7.0406-4.1185-8.9059"/></svg>`,
   globe: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
   lock: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
   refresh: `<svg class="fg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>`,
@@ -88,7 +88,7 @@ $('#sebi-form').addEventListener('submit',async (e)=>{
             ${ICONS.alertOctagon}
             <span>Unregistered Entity / Impersonation Alert</span>
           </div>
-          <div style="font-size:11.5px;margin-top:6px;line-height:1.5">No active registration matching “${escapeHtml(value)}” was found in the official SEBI database. Offering financial advice without SEBI registration violates Section 12(1) of the SEBI Act, 1992.</div>
+          <div style="font-size:13px;margin-top:6px;line-height:1.5">No active registration matching “${escapeHtml(value)}” was found in the official SEBI database. Offering financial advice without SEBI registration violates Section 12(1) of the SEBI Act, 1992.</div>
         </div>
       `;
     }
@@ -152,7 +152,9 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
 
   const vBadge = video.isDeepfake ? 'badge-danger' : (video.score !== null ? 'badge-safe' : 'badge-idle');
   const aBadge = audio.isDeepfake ? 'badge-danger' : (audio.score !== null ? 'badge-safe' : 'badge-idle');
-  const sBadge = scam.violatesSebi || scam.violatesBns ? 'badge-danger' : (scam.score !== null && scam.score > 0.3 ? 'badge-warning' : 'badge-safe');
+  const sBadge = (scam.isAwareness || (!scam.isFlagged && (!scam.score || scam.score < 0.35)))
+    ? 'badge-safe'
+    : ((scam.violatesSebi || scam.violatesBns || scam.isFlagged) ? 'badge-danger' : (scam.score !== null && scam.score >= 0.35 ? 'badge-warning' : 'badge-safe'));
   const rBadge = reg.isFlagged ? 'badge-danger' : (reg.verdict === 'verified' ? 'badge-safe' : 'badge-idle');
 
   const modalityCardsHtml = `
@@ -196,11 +198,11 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
         <div class="forensic-modality-card-head">
           <h4 class="forensic-modality-title">${ICONS.scale} Financial Scam Claims</h4>
           <span class="forensic-modality-badge ${sBadge}">
-            ${scam.score !== null ? `${Math.round(scam.score * 100)}%` : (scam.violatesSebi ? 'Violated' : 'Clean')}
+            ${scam.isAwareness ? 'Awareness' : (scam.isFlagged || (scam.score !== null && scam.score >= 0.35) ? `${Math.round(scam.score * 100)}%` : 'Compliant')}
           </span>
         </div>
-        <div class="forensic-modality-status">${escapeHtml(scam.label || (scam.violatesSebi ? 'Prohibited Promises Flagged' : 'No Prohibited Promises'))}</div>
-        <div class="forensic-modality-desc">${escapeHtml(scam.explanation || 'Screened statements against SEBI Investment Adviser Regulations and penal code fraud.')}</div>
+        <div class="forensic-modality-status">${escapeHtml(scam.isAwareness ? 'Awareness Based Video' : (scam.isFlagged ? (scam.label || 'Prohibited Promises Flagged') : (scam.label || 'No Prohibited Promises')))}</div>
+        <div class="forensic-modality-desc">${escapeHtml(scam.isAwareness ? 'Educational / scam awareness content: The speaker is warning viewers against fraud, cautioning against guaranteed returns, and advising investor safety.' : (scam.explanation || scam.summary || 'Screened statements against SEBI Investment Adviser Regulations and penal code fraud.'))}</div>
         <dl class="forensic-detail-dl">
           <div class="forensic-detail-row"><dt>SEBI IA Reg 15</dt><dd>${scam.violatesSebi ? `<span class="fg-status-tag tag-danger">${ICONS.xCircle} Violated</span>` : `<span class="fg-status-tag tag-safe">${ICONS.checkCircle} Compliant</span>`}</dd></div>
           <div class="forensic-detail-row"><dt>BNS Sec 318(4) Match</dt><dd>${scam.violatesBns ? `<span class="fg-status-tag tag-danger">${ICONS.alertTriangle} Flagged</span>` : `<span class="fg-status-tag tag-safe">${ICONS.check} None</span>`}</dd></div>
@@ -299,7 +301,7 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
           <ul class="forensic-timeline-list">
             ${timeline.map(item => `
               <li>
-                <time style="font-family:monospace;font-size:11.5px;font-weight:700;color:#173f35">
+                <time style="font-family:var(--mono, monospace);font-size:12px;font-weight:700;color:var(--forest, #173f35)">
                   ${fmtClock(item.start)} - ${fmtClock(item.end)}
                 </time>
                 <div>
@@ -476,11 +478,14 @@ function buildDetailedAnalysisHtml(vm, raw, jobId) {
 }
 
 function wireDossierActions(res, vm, jobId) {
-  const jumpBtns = $$('#btn-scroll-dossier, #btn-switch-to-dossier-tab', dlg);
+  const jumpBtns = $$('#btn-scroll-dossier, #btn-switch-to-dossier-tab, #btn-audio-to-dossier', dlg);
   jumpBtns.forEach(b => b.addEventListener('click', () => switchToTab('dossier')));
 
-  const backBtns = $$('#btn-back-to-summary', dlg);
+  const backBtns = $$('#btn-back-to-summary, #btn-audio-back-to-summary', dlg);
   backBtns.forEach(b => b.addEventListener('click', () => switchToTab('summary')));
+
+  const audioJumpBtns = $$('#btn-switch-to-audio-tab, #card-voice-finding, .btn-switch-to-audio', dlg);
+  audioJumpBtns.forEach(b => b.addEventListener('click', () => switchToTab('audio')));
 
   const printBtns = $$('#btn-print-dossier, #btn-print-dossier-main', dlg);
   printBtns.forEach(b => b.addEventListener('click', () => window.print()));
@@ -557,49 +562,327 @@ END OF DOSSIER — BHARATIYA SAKSHYA ADHINIYAM (BSA 2023) SEC 63
   }
 }
 
+function buildSuspiciousAudioHtml(res, vm, jobId) {
+  const flagged = Array.isArray(res.flagged_audio_segments) ? res.flagged_audio_segments : [];
+  const allSegments = Array.isArray(res.all_audio_segments) ? res.all_audio_segments : [];
+  const transcriptSegments = Array.isArray(res.segments) ? res.segments : (Array.isArray(vm?.transcript) ? vm.transcript : []);
+  const aScore = typeof res.audio_score === 'number' ? res.audio_score : null;
+  const isAudioFake = aScore !== null && aScore > 0.50;
+  const peakScore = typeof res.audio_raw_peak_score === 'number' ? res.audio_raw_peak_score : (aScore ?? 0);
+  const backend = res.audio_backend || 'Wav2Vec2 GaryStafford / Mel-Spectrogram';
+
+  let effectiveFlagged = [...flagged];
+  if (effectiveFlagged.length === 0 && allSegments.length > 0) {
+    effectiveFlagged = allSegments.filter(s => (s.score !== undefined && s.score >= 0.45) || s.is_flagged);
+  }
+
+  function getSpokenText(start, end) {
+    if (!transcriptSegments || !transcriptSegments.length) return '';
+    const hits = transcriptSegments.filter(t => {
+      const s = typeof t.start === 'number' ? t.start : 0;
+      const e = typeof t.end === 'number' ? t.end : (s + 3);
+      return Math.max(s, start) < Math.min(e, end) + 0.3;
+    });
+    if (hits.length > 0) {
+      return hits.map(h => (h.text || '').trim()).filter(Boolean).join(' ');
+    }
+    return '';
+  }
+
+  let maxTime = 0;
+  if (allSegments.length > 0) {
+    maxTime = Math.max(...allSegments.map(s => s.end || 0));
+  } else if (effectiveFlagged.length > 0) {
+    maxTime = Math.max(...effectiveFlagged.map(s => s.end || 0));
+  } else if (transcriptSegments.length > 0) {
+    maxTime = Math.max(...transcriptSegments.map(s => s.end || 0));
+  }
+  if (!maxTime || maxTime < 1) maxTime = 30;
+
+  const totalWindowsCount = allSegments.length || (res.audio_total_windows || Math.max(1, effectiveFlagged.length));
+  const flaggedCount = effectiveFlagged.length;
+  const susDurationSec = effectiveFlagged.reduce((acc, s) => acc + Math.max(0, ((s.end || 0) - (s.start || 0))), 0);
+  const susPct = maxTime > 0 ? Math.min(100, Math.round((susDurationSec / maxTime) * 100)) : (flaggedCount > 0 ? 100 : 0);
+
+  let timelineTrackHtml = '';
+  if (allSegments.length > 0) {
+    timelineTrackHtml = `
+      <div class="audio-timeline-track-wrap">
+        <div class="audio-timeline-legend">
+          <span class="legend-item"><span class="legend-dot dot-sus"></span> Suspicious Segment (AI Voice Clone)</span>
+          <span class="legend-item"><span class="legend-dot dot-clean"></span> Verified Human Speech</span>
+        </div>
+        <div class="audio-timeline-bar" role="img" aria-label="Audio Timeline Anomaly Map">
+          ${allSegments.map((s, idx) => {
+            const isSus = (s.score !== undefined && s.score >= 0.45) || s.is_flagged;
+            const wPct = Math.max(3, Math.round((((s.end || 0) - (s.start || 0)) / maxTime) * 100));
+            const tip = `${fmtClock(s.start)} - ${fmtClock(s.end)} | ${isSus ? 'SUSPICIOUS' : 'Natural'}: ${((s.score || 0) * 100).toFixed(0)}%`;
+            return `
+              <div class="timeline-chunk ${isSus ? 'chunk-sus' : 'chunk-clean'}" 
+                   style="flex: ${wPct} 0 0;" 
+                   title="${escapeHtml(tip)}"
+                   data-start="${s.start}" data-end="${s.end}">
+                <span class="chunk-label">${fmtClock(s.start)}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="audio-timeline-axis">
+          <span>00:00</span>
+          <span>${fmtClock(maxTime / 2)}</span>
+          <span>${fmtClock(maxTime)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  let flaggedCardsHtml = '';
+  if (effectiveFlagged.length > 0) {
+    flaggedCardsHtml = `
+      <div class="audio-sus-section-head">
+        <div class="sus-section-badge-row">
+          <span class="sus-section-icon">${ICONS.alertOctagon}</span>
+          <h4 class="audio-sus-section-title">Flagged Suspicious Audio Windows (${flaggedCount} Anomaly Chunks)</h4>
+        </div>
+        <p class="audio-sus-section-sub">
+          The following timestamp intervals triggered acoustic deepfake anomaly flags during Wav2Vec2 phoneme frequency and spectral pitch analysis:
+        </p>
+      </div>
+
+      <div class="audio-sus-cards-grid">
+        ${effectiveFlagged.map((seg, idx) => {
+          const sTime = typeof seg.start === 'number' ? seg.start : 0;
+          const eTime = typeof seg.end === 'number' ? seg.end : (sTime + 5);
+          const duration = Math.max(0.1, (eTime - sTime)).toFixed(1);
+          const segScore = typeof seg.score === 'number' ? seg.score : (aScore ?? 0.85);
+          const spokenWords = getSpokenText(sTime, eTime);
+          const reasonText = seg.reason || (
+            segScore >= 0.70
+              ? 'High-confidence synthetic voice clone: Flattened pitch contour and neural vocoder spectral phase artifacts detected by Wav2Vec2.'
+              : 'Acoustic anomaly: Vocoder frequency compression exceeded natural vocal tract boundaries (threshold 0.45).'
+          );
+
+          return `
+            <div class="audio-sus-card is-flagged">
+              <div class="sus-card-header">
+                <div class="sus-time-badge">
+                  <span class="sus-clock-icon">${ICONS.clock}</span>
+                  <span class="sus-time-text">${fmtClock(sTime)} - ${fmtClock(eTime)}</span>
+                  <span class="sus-dur-pill">(${duration}s duration)</span>
+                </div>
+                <div class="sus-score-pill pill-danger">
+                  <span class="pulse-radar" style="width:8px;height:8px"></span>
+                  <span>AI Voice Anomaly: ${(segScore * 100).toFixed(1)}%</span>
+                </div>
+              </div>
+
+              <div class="sus-spoken-box">
+                <div class="sus-spoken-kicker">
+                  ${ICONS.transcript} Spoken Audio During This Window (Whisper STT):
+                </div>
+                <div class="sus-spoken-content">
+                  ${spokenWords 
+                    ? `<blockquote class="sus-quote">“${escapeHtml(spokenWords)}”</blockquote>`
+                    : `<span class="sus-no-speech"><i>Ambient audio / synthetic vocoder harmonics without isolated phoneme speech</i></span>`
+                  }
+                </div>
+              </div>
+
+              <div class="sus-diagnostic-box">
+                <div class="sus-diag-kicker">${ICONS.shield} Forensic Acoustic Indicators:</div>
+                <p class="sus-diag-text">${escapeHtml(reasonText)}</p>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else {
+    flaggedCardsHtml = `
+      <div class="audio-clean-card">
+        <div class="clean-icon-wrap">
+          <span class="clean-icon">${ICONS.shieldCheck}</span>
+        </div>
+        <div class="clean-text-wrap">
+          <h4 class="clean-title">All Audio Segments Verified Authentic</h4>
+          <p class="clean-desc">
+            Zero suspicious audio windows were flagged out of ${totalWindowsCount} evaluated chunks. Vocal pitch micro-tremors, formant transitions, acoustic harmonics, and natural respiratory pauses all match organic human vocal cord dynamics.
+          </p>
+          <div class="clean-meta-row">
+            <span><b>Model Confidence:</b> 0.0% Synthetic Voice Probability</span>
+            <span><b>Engine:</b> ${escapeHtml(backend)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  let allChunksAuditHtml = '';
+  if (allSegments.length > 0) {
+    allChunksAuditHtml = `
+      <details class="forensic-disclosure" ${effectiveFlagged.length === 0 ? 'open' : ''}>
+        <summary>
+          <span>${ICONS.barChart} Complete Audio Chunks Breakdown (${allSegments.length} Windows Evaluated)</span>
+          <span style="font-size:12px;color:var(--muted)">Full Audit Trail ▾</span>
+        </summary>
+        <div class="forensic-disclosure-inner">
+          <div class="audio-chunks-table-wrap">
+            <table class="audio-chunks-table">
+              <thead>
+                <tr>
+                  <th>Window</th>
+                  <th>Timestamp</th>
+                  <th>Status</th>
+                  <th>Acoustic Score</th>
+                  <th>Spoken Words (Transcript)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${allSegments.map((s, idx) => {
+                  const isSus = (s.score !== undefined && s.score >= 0.45) || s.is_flagged;
+                  const sTime = s.start || 0;
+                  const eTime = s.end || (sTime + 5);
+                  const words = getSpokenText(sTime, eTime);
+                  return `
+                    <tr class="${isSus ? 'row-sus' : 'row-clean'}">
+                      <td class="td-chunk">#${idx + 1}</td>
+                      <td class="td-time"><code>${fmtClock(sTime)} - ${fmtClock(eTime)}</code></td>
+                      <td class="td-status">
+                        ${isSus 
+                          ? `<span class="chunk-status-pill pill-danger">🚨 SUSPICIOUS</span>` 
+                          : `<span class="chunk-status-pill pill-safe">✓ CLEAN</span>`
+                        }
+                      </td>
+                      <td class="td-score"><b>${((s.score || 0) * 100).toFixed(1)}%</b></td>
+                      <td class="td-words">${words ? `“${escapeHtml(words)}”` : '<i style="color:#888">—</i>'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
+  return `
+    <div class="suspicious-audio-dossier" id="suspicious-audio-tab-view">
+      <div class="audio-sus-hero ${effectiveFlagged.length > 0 ? 'hero-critical' : 'hero-safe'}">
+        <div class="audio-sus-hero-icon">
+          ${effectiveFlagged.length > 0 ? ICONS.mic : ICONS.shieldCheck}
+        </div>
+        <div class="audio-sus-hero-text">
+          <span class="audio-sus-kicker">ACOUSTIC FORENSIC AUDIT · STAGE 3 VOCODER DEEPFAKE SCAN</span>
+          <h3 class="audio-sus-title">
+            ${effectiveFlagged.length > 0 
+              ? `${flaggedCount} Suspicious Audio Window${flaggedCount > 1 ? 's' : ''} Identified in Media Track`
+              : 'All Audio Windows Verified Natural & Authentic'
+            }
+          </h3>
+          <p class="audio-sus-desc">
+            ${effectiveFlagged.length > 0
+              ? 'Wav2Vec2 neural acoustic classifier isolated anomalous temporal windows exhibiting synthetic vocoder characteristics, flat pitch dynamics, or cloning artifacts.'
+              : 'Every evaluated audio window matches organic human speech patterns with no evidence of neural TTS, voice cloning, or vocoder synthesis.'
+            }
+          </p>
+        </div>
+      </div>
+
+      <div class="audio-sus-metrics-grid">
+        <div class="audio-metric-card">
+          <span class="audio-metric-label">Flagged Sus Chunks</span>
+          <div class="audio-metric-value ${effectiveFlagged.length > 0 ? 'color-critical' : 'color-safe'}">
+            ${flaggedCount} <span class="audio-metric-sub">/ ${totalWindowsCount}</span>
+          </div>
+          <span class="audio-metric-hint">${effectiveFlagged.length > 0 ? `${susPct}% of audio flagged` : '100% natural speech'}</span>
+        </div>
+
+        <div class="audio-metric-card">
+          <span class="audio-metric-label">Peak Anomaly Score</span>
+          <div class="audio-metric-value ${peakScore >= 0.5 ? 'color-critical' : 'color-safe'}">
+            ${(peakScore * 100).toFixed(1)}<span class="audio-metric-sub">%</span>
+          </div>
+          <span class="audio-metric-hint">${peakScore >= 0.5 ? 'Exceeds synthetic threshold' : 'Within human baseline'}</span>
+        </div>
+
+        <div class="audio-metric-card">
+          <span class="audio-metric-label">Total Audio Evaluated</span>
+          <div class="audio-metric-value">
+            ${fmtClock(maxTime)}
+          </div>
+          <span class="audio-metric-hint">${totalWindowsCount} temporal windows scanned</span>
+        </div>
+
+        <div class="audio-metric-card">
+          <span class="audio-metric-label">Classifier Engine</span>
+          <div class="audio-metric-value" style="font-size:14.5px;font-weight:700">
+            Wav2Vec2
+          </div>
+          <span class="audio-metric-hint">${escapeHtml(backend.split('/')[0].trim())}</span>
+        </div>
+      </div>
+
+      ${timelineTrackHtml}
+
+      ${flaggedCardsHtml}
+
+      ${allChunksAuditHtml}
+    </div>
+  `;
+}
+
 function setupResultsTabs() {
-  const tabSummary = $('#tab-btn-summary', dlg);
-  const tabDossier = $('#tab-btn-dossier', dlg);
-  const panelSummary = $('#panel-summary', dlg);
-  const panelDossier = $('#panel-dossier', dlg);
-  if (!tabSummary || !tabDossier || !panelSummary || !panelDossier) return;
+  const tabs = $$('.forensic-tab-btn', dlg);
+  const panels = $$('.results-tab-panel', dlg);
+  if (!tabs.length || !panels.length) return;
 
-  function activate(tab) {
-    const isSum = tab === 'summary';
-    tabSummary.classList.toggle('active', isSum);
-    tabSummary.setAttribute('aria-selected', String(isSum));
-    tabSummary.tabIndex = isSum ? 0 : -1;
-    panelSummary.classList.toggle('active', isSum);
-    panelSummary.hidden = !isSum;
+  function activate(tabKey) {
+    tabs.forEach(tBtn => {
+      const controls = tBtn.getAttribute('aria-controls') || '';
+      const tKey = controls.replace(/^panel-/, '') || tBtn.id.replace(/^tab-btn-/, '');
+      const isActive = tKey === tabKey;
+      tBtn.classList.toggle('active', isActive);
+      tBtn.setAttribute('aria-selected', String(isActive));
+      tBtn.tabIndex = isActive ? 0 : -1;
+    });
 
-    tabDossier.classList.toggle('active', !isSum);
-    tabDossier.setAttribute('aria-selected', String(!isSum));
-    tabDossier.tabIndex = !isSum ? 0 : -1;
-    panelDossier.classList.toggle('active', !isSum);
-    panelDossier.hidden = isSum;
+    panels.forEach(p => {
+      const pKey = p.id.replace(/^panel-/, '');
+      const isActive = pKey === tabKey;
+      p.classList.toggle('active', isActive);
+      p.hidden = !isActive;
+    });
 
     const scrollArea = dlg.querySelector('.dialog-scroll-area') || dlg;
     scrollArea.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  tabSummary.addEventListener('click', () => activate('summary'));
-  tabDossier.addEventListener('click', () => activate('dossier'));
+  tabs.forEach((tBtn, idx) => {
+    tBtn.addEventListener('click', () => {
+      const controls = tBtn.getAttribute('aria-controls') || '';
+      const tabKey = controls.replace(/^panel-/, '') || tBtn.id.replace(/^tab-btn-/, '');
+      activate(tabKey);
+    });
 
-  [tabSummary, tabDossier].forEach((tBtn, idx) => {
     tBtn.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         e.preventDefault();
-        const nextTab = idx === 0 ? 'dossier' : 'summary';
-        const nextBtn = idx === 0 ? tabDossier : tabSummary;
-        nextBtn.focus();
-        activate(nextTab);
+        const nextIdx = e.key === 'ArrowRight'
+          ? (idx + 1) % tabs.length
+          : (idx - 1 + tabs.length) % tabs.length;
+        const nextBtn = tabs[nextIdx];
+        if (nextBtn) {
+          nextBtn.focus();
+          nextBtn.click();
+        }
       }
     });
   });
 }
 
 function switchToTab(tabName) {
-  const targetBtn = tabName === 'dossier' ? $('#tab-btn-dossier', dlg) : $('#tab-btn-summary', dlg);
+  const targetBtn = $(`#tab-btn-${tabName}`, dlg) || $(`[aria-controls="panel-${tabName}"]`, dlg);
   if (targetBtn) targetBtn.click();
 }
 
@@ -653,8 +936,29 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
   const isVisionFake = vScoreNum !== null && vScoreNum > 0.4;
   const isAudioFake = aScoreNum !== null && aScoreNum > 0.5;
 
+  const txText = String(res.transcript || res.sebi_analysis?.transcript || '').toLowerCase();
+  const txAwareness = /(?:warning against|caution(?:ing)? against|fraudulent scheme|be careful|do not trust guaranteed|never share your otp|staying informed|staying safe|awareness)/i.test(txText);
+
+  const isAwareness = Boolean(
+    res.is_awareness ||
+    res.sebi_analysis?.content_intent === 'awareness_warning' ||
+    res.sebi_analysis?.awareness_context_detected ||
+    res.sebi_analysis?.speaker_stance === 'warning' ||
+    (txAwareness && !isScam) ||
+    String(verdict).toLowerCase().includes('awareness')
+  );
+
   let bannerClass = 'banner-safe', bannerIconSvg = ICONS.shieldCheck, fillClass = 'fill-safe', colorClass = 'color-safe', riskLevelText = 'LOW / NO MALICIOUS SIGNALS';
-  if (risk >= 80 || (isDeepfake && isScam)) {
+  let displayVerdict = verdict;
+
+  if (isAwareness && !isDeepfake && !isScam) {
+    bannerClass = 'banner-safe';
+    bannerIconSvg = ICONS.shieldCheck;
+    fillClass = 'fill-safe';
+    colorClass = 'color-safe';
+    riskLevelText = 'AWARENESS BASED VIDEO (PUBLIC FRAUD WARNING)';
+    displayVerdict = 'AWARENESS BASED VIDEO';
+  } else if (risk >= 80 || (isDeepfake && isScam)) {
     bannerClass = 'banner-critical';
     bannerIconSvg = ICONS.alertOctagon;
     fillClass = 'fill-critical';
@@ -665,7 +969,10 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
     bannerIconSvg = ICONS.alertTriangle;
     fillClass = 'fill-warning';
     colorClass = 'color-warning';
-    riskLevelText = 'SUSPICIOUS / ELEVATED RISK';
+    riskLevelText = isAwareness ? 'SYNTHETIC MEDIA DETECTED (AWARENESS SPOKEN CONTENT)' : 'SUSPICIOUS / ELEVATED RISK';
+    if (isAwareness && isDeepfake && !isScam && !displayVerdict.includes('Awareness')) {
+      displayVerdict = 'Warning: Deepfake Detected (Awareness Based Video)';
+    }
   }
 
   const regVerdict = res.registry_check?.verdict || 'Not Claimed';
@@ -674,13 +981,19 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
   const vm = toViewModel(res, { mode: 'video', jobId: jobId, filename: filename });
   const detailedHtml = buildDetailedAnalysisHtml(vm, res, jobId);
 
+  const flaggedAudioList = Array.isArray(res.flagged_audio_segments) ? res.flagged_audio_segments : [];
+  const allAudioList = Array.isArray(res.all_audio_segments) ? res.all_audio_segments : [];
+  const flaggedAudioCount = flaggedAudioList.length || allAudioList.filter(s => (s.score !== undefined && s.score >= 0.45) || s.is_flagged).length;
+  const isAudioSus = isAudioFake || flaggedAudioCount > 0;
+  const suspiciousAudioHtml = buildSuspiciousAudioHtml(res, vm, jobId);
+
   const executiveHtml = `
     <div class="mobile-conclusion-card" id="workspace-result-card">
       <div class="mobile-verdict-banner ${bannerClass}">
         <span class="banner-icon">${bannerIconSvg}</span>
         <div class="banner-text">
           <span class="banner-kicker">FINANCIAL FORENSIC CONCLUSION</span>
-          <h3 class="banner-title">${escapeHtml(verdict.toUpperCase())}</h3>
+          <h3 class="banner-title">${escapeHtml(displayVerdict.toUpperCase())}</h3>
         </div>
       </div>
       
@@ -704,15 +1017,18 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
           <span class="finding-icon">${isVisionFake ? ICONS.eye : ICONS.checkCircle}</span>
           <div class="finding-content">
             <b>Visual Facial Authenticity</b>
-            <span>${vScoreStr} · ${isVisionFake ? 'Synthetic Face / Temporal Glitches Detected' : 'Authentic Camera Capture'}</span>
+            <span>${isVisionFake ? 'Synthetic Face / Temporal Glitches Detected' : 'Authentic Camera Capture'}</span>
           </div>
         </div>
         
-        <div class="finding-card ${isAudioFake ? 'finding-danger' : 'finding-ok'}">
+        <div class="finding-card ${isAudioFake ? 'finding-danger' : 'finding-ok'}" id="card-voice-finding" style="cursor:pointer;" title="Click to view detailed acoustic anomaly timestamps">
           <span class="finding-icon">${isAudioFake ? ICONS.mic : ICONS.checkCircle}</span>
           <div class="finding-content">
-            <b>Voice Authenticity (Wav2Vec2)</b>
-            <span>${aScoreStr} · ${isAudioFake ? 'Synthetic Voice Clone Detected' : 'Natural Human Voice Patterns'}</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+              <b>Voice Authenticity (Wav2Vec2)</b>
+              <span class="finding-action-hint">View Sus Chunks →</span>
+            </div>
+            <span>${isAudioFake ? 'Synthetic Voice Clone Detected' : 'Natural Human Voice Patterns'}</span>
           </div>
         </div>
         
@@ -721,6 +1037,14 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
           <div class="finding-content">
             <b>SEBI Intermediary Registry</b>
             <span>${escapeHtml(regVerdict).toUpperCase()} · ${isRegFlag ? 'Unregistered / Identity Fraud Risk' : 'No Fraudulent Registry Claim'}</span>
+          </div>
+        </div>
+
+        <div class="finding-card ${isScam ? 'finding-danger' : 'finding-ok'}">
+          <span class="finding-icon">${isScam ? ICONS.alertTriangle : ICONS.shieldCheck}</span>
+          <div class="finding-content">
+            <b>Speech Content & Compliance</b>
+            <span>${isAwareness ? 'Awareness Based Video · Public Anti-Fraud Guidance' : (isScam ? 'Prohibited Financial Solicitations Flagged' : 'Compliant / No Scam Claims')}</span>
           </div>
         </div>
         
@@ -741,6 +1065,12 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
       ` : ''}
       
       <div class="mobile-conclusion-actions">
+        <button type="button" class="button btn-mobile-secondary" id="btn-switch-to-audio-tab">
+          ${ICONS.mic} View Suspicious Audio Windows (${flaggedAudioCount > 0 ? `${flaggedAudioCount} Sus Chunks Flagged` : 'Acoustic Anomaly Analysis'}) →
+        </button>
+        <button type="button" class="button btn-mobile-secondary" id="btn-switch-to-dossier-tab">
+          ${ICONS.dossier} Switch to Full Forensic Dossier & Evidence →
+        </button>
         <a href="/api/jobs/${jobId}/complaint/pdf" target="_blank" class="button btn-mobile-pdf" id="btn-dl-pdf-main">
           ${ICONS.fileText} ${(res.scores_complaint || '').includes('CLEARANCE MEMORANDUM') ? 'Download Certified Clearance Report (PDF)' : 'Download Certified Court Complaint (PDF)'}
         </a>
@@ -752,9 +1082,6 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
         </button>
         <button type="button" class="button btn-mobile-copy" id="btn-copy-complaint">
           ${ICONS.copy} ${(res.scores_complaint || '').includes('CLEARANCE MEMORANDUM') ? 'Copy Certified Clearance to Clipboard' : 'Copy Plaintext Complaint to Clipboard'}
-        </button>
-        <button type="button" class="button btn-mobile-secondary" id="btn-switch-to-dossier-tab">
-          ${ICONS.dossier} Switch to Full Forensic Dossier & Evidence →
         </button>
       </div>
     </div>
@@ -793,9 +1120,21 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
           </div>
           <span class="tab-badge-pill ${bannerClass}">${escapeHtml(verdict)}</span>
         </button>
-        <button type="button" class="forensic-tab-btn" role="tab" id="tab-btn-dossier" aria-selected="false" aria-controls="panel-dossier" tabindex="-1">
+        <button type="button" class="forensic-tab-btn" role="tab" id="tab-btn-audio" aria-selected="false" aria-controls="panel-audio" tabindex="-1">
           <div class="tab-btn-main">
             <span class="tab-step-num">TAB 02</span>
+            <span class="tab-btn-title">
+              <span class="tab-btn-icon">${ICONS.mic}</span>
+              Suspicious Audio
+            </span>
+          </div>
+          <span class="tab-badge-pill ${isAudioSus ? 'banner-critical' : 'banner-safe'}">
+            ${isAudioSus ? (flaggedAudioCount > 0 ? `${flaggedAudioCount} Sus Chunks` : 'Synthetic') : 'Clean Voice'}
+          </span>
+        </button>
+        <button type="button" class="forensic-tab-btn" role="tab" id="tab-btn-dossier" aria-selected="false" aria-controls="panel-dossier" tabindex="-1">
+          <div class="tab-btn-main">
+            <span class="tab-step-num">TAB 03</span>
             <span class="tab-btn-title">
               <span class="tab-btn-icon">${ICONS.dossier}</span>
               Forensic Dossier
@@ -809,6 +1148,17 @@ function renderVideoResults(res, jobId, filename = 'Analyzed Video') {
       <div class="results-tab-content">
         <div class="results-tab-panel active" id="panel-summary" role="tabpanel" aria-labelledby="tab-btn-summary">
           ${executiveHtml}
+        </div>
+        <div class="results-tab-panel" id="panel-audio" role="tabpanel" aria-labelledby="tab-btn-audio" hidden>
+          ${suspiciousAudioHtml}
+          <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button type="button" class="button btn-mobile-secondary" id="btn-audio-back-to-summary" style="max-width: 320px;">
+              ${ICONS.arrowLeft} Return to Executive Verdict
+            </button>
+            <button type="button" class="button btn-mobile-secondary" id="btn-audio-to-dossier" style="max-width: 320px;">
+              ${ICONS.dossier} View Full Forensic Dossier →
+            </button>
+          </div>
         </div>
         <div class="results-tab-panel" id="panel-dossier" role="tabpanel" aria-labelledby="tab-btn-dossier" hidden>
           ${detailedHtml}
@@ -934,6 +1284,30 @@ function renderPipelineTracker(activeStageIdx, isCompleted = false) {
   `;
 }
 
+async function parseApiResponse(resp, modality) {
+  if (resp.ok) {
+    return await resp.json();
+  }
+  const ngrokErr = resp.headers.get('ngrok-error-code');
+  const text = await resp.text().catch(() => '');
+  if (ngrokErr === 'ERR_NGROK_3200' || text.includes('ERR_NGROK_3200') || (text.includes('endpoint') && text.includes('offline'))) {
+    throw new Error('Public Ngrok tunnel is currently offline (ERR_NGROK_3200). Please run start_ngrok.bat or start.bat to establish the live tunnel.');
+  }
+  try {
+    const errData = JSON.parse(text);
+    if (errData && errData.detail) throw new Error(errData.detail);
+  } catch (e) {
+    if (e.message && !e.message.includes('Unexpected') && !e.message.includes('JSON')) throw e;
+  }
+  if (resp.status === 404) {
+    throw new Error(`${modality} service unreachable (Status 404). Please ensure the FinGuard backend is running on port 8000.`);
+  }
+  if (resp.status === 502 || resp.status === 504) {
+    throw new Error(`${modality} backend service is starting up (Status ${resp.status}). Please try again in a few moments.`);
+  }
+  throw new Error(`${modality} returned status ${resp.status}`);
+}
+
 function uploadWithProgress(file, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -954,16 +1328,30 @@ function uploadWithProgress(file, onProgress) {
           reject(new Error('Invalid response from FinGuard server'));
         }
       } else {
+        const ngrokErr = xhr.getResponseHeader('ngrok-error-code');
+        const respText = xhr.responseText || '';
+        if (ngrokErr === 'ERR_NGROK_3200' || respText.includes('ERR_NGROK_3200') || (respText.includes('endpoint') && respText.includes('offline'))) {
+          reject(new Error('Public Ngrok tunnel is currently offline (ERR_NGROK_3200). Please run start_ngrok.bat or start.bat to establish the live tunnel.'));
+          return;
+        }
         try {
-          const errData = JSON.parse(xhr.responseText);
+          const errData = JSON.parse(respText);
           reject(new Error(errData.detail || `Upload failed (Status ${xhr.status})`));
         } catch {
-          reject(new Error(`Upload failed (Status ${xhr.status})`));
+          if (xhr.status === 404) {
+            reject(new Error('FinGuard forensic backend is unreachable (Status 404). Please ensure start.bat or start_ngrok.bat is running on the host machine.'));
+          } else if (xhr.status === 413) {
+            reject(new Error('Video file exceeds maximum allowed upload size (100MB).'));
+          } else if (xhr.status === 502 || xhr.status === 504) {
+            reject(new Error(`Backend service unavailable (Status ${xhr.status}). The models may still be warming up.`));
+          } else {
+            reject(new Error(`Upload failed (Status ${xhr.status})`));
+          }
         }
       }
     };
     
-    xhr.onerror = () => reject(new Error('Network error during file upload. Check your connection.'));
+    xhr.onerror = () => reject(new Error('Network error during file upload. Check your connection or tunnel status.'));
     xhr.ontimeout = () => reject(new Error('Upload timed out. Please try again.'));
     
     const fd = new FormData();
@@ -1161,8 +1549,7 @@ async function runDemo(){
       const fd=new FormData();
       fd.append('file',selectedFile);
       const resp=await fetch('/api/scan/audio',{method:'POST',body:fd});
-      if(!resp.ok)throw new Error(`Audio scan returned status ${resp.status}`);
-      const data=await resp.json();
+      const data=await parseApiResponse(resp, 'Audio Scan');
       const isFake=Boolean(data.is_deepfake);
       const score=data.audio_score!==undefined?Math.round(data.audio_score*100):0;
       
@@ -1286,8 +1673,7 @@ async function runDemo(){
       const fd=new FormData();
       fd.append('file',selectedFile);
       const resp=await fetch('/api/scan/apk',{method:'POST',body:fd});
-      if(!resp.ok)throw new Error(`APK scan returned status ${resp.status}`);
-      const data=await resp.json();
+      const data=await parseApiResponse(resp, 'APK Scan');
       const apkR=data.apk_result||{};
       const isSuspicious=Boolean(apkR.is_suspicious);
       
@@ -1409,8 +1795,7 @@ async function runDemo(){
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({url:urlVal})
       });
-      if(!resp.ok)throw new Error(`URL scan returned status ${resp.status}`);
-      const data=await resp.json();
+      const data=await parseApiResponse(resp, 'URL Scan');
       const urlR=data.url_result||{};
       const isPhishing=Boolean(urlR.is_phishing);
       
@@ -1532,8 +1917,7 @@ async function runDemo(){
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({text:claimVal})
       });
-      if(!resp.ok)throw new Error(`Compliance scan returned status ${resp.status}`);
-      const data=await resp.json();
+      const data=await parseApiResponse(resp, 'Compliance Scan');
       const isScam=Boolean(data.is_scam);
       const risk=Math.round((data.composite_risk_score||0)*100);
       

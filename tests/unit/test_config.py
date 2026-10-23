@@ -13,9 +13,9 @@ def test_config_settings_loaded():
 
 def test_get_threshold_existing():
     val = get_threshold("vision_fake_threshold")
-    assert val == 0.5
+    assert val == settings.get("thresholds", {}).get("vision_fake_threshold", 0.75)
     val_audio = get_threshold("audio_fake_threshold")
-    assert val_audio == 0.5
+    assert val_audio == settings.get("thresholds", {}).get("audio_fake_threshold", 0.75)
 
 
 def test_get_threshold_default_fallback():

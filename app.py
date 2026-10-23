@@ -114,13 +114,15 @@ def calculate_calibrated_verdict(
     composite_risk: float,
     registry_verdict: str,
     fallback_used: bool = False,
-    degraded_modules: Optional[list] = None
+    degraded_modules: Optional[list] = None,
+    is_awareness: bool = False
 ) -> str:
     """
     3-Tier regulatory calibration:
     - Critical: Deepfake + Scam
     - Warning: Deepfake or Hard Scam Violation / Active impersonation
     - Suspicious: Review Recommended (ambiguous registry, composite risk >= 0.35, degraded/fallback)
+    - Awareness: Awareness Based Video (Anti-scam public warning / investor education)
     - Safe: Clean content (<0.35 risk, full analysis completed)
 
     Registry signal policy:
@@ -135,6 +137,8 @@ def calculate_calibrated_verdict(
     if is_deepfake and is_scam:
         return "Critical: Deepfake + Scam"
     elif is_deepfake:
+        if is_awareness and not is_scam:
+            return "Warning: Deepfake Detected (Awareness Based Video)"
         return "Warning: Deepfake Detected"
     elif is_scam:
         # Confirmed financial scam content — always at least Warning regardless of registry.
@@ -145,6 +149,8 @@ def calculate_calibrated_verdict(
     elif registry_verdict in ("not found", "malformed number", "uncertain match", "unavailable"):
         # Absent, unverifiable registration, or service downtime — suspicious but not conclusive without scam evidence.
         return "Suspicious: Review Recommended"
+    elif is_awareness and not is_scam:
+        return "Awareness Based Video"
     elif composite_risk >= 0.35 or fallback_used or bool(degraded_modules):
         return "Suspicious: Review Recommended"
     else:
@@ -224,6 +230,17 @@ def build_evidence_breakdown(
         status = sebi_analysis.get("analysis_status", "fallback")
         degraded_list.append(f"Stage 5 LLM offline/degraded ({status})")
 
+    is_awareness_context = bool(
+        sebi_analysis
+        and (
+            sebi_analysis.get("content_intent") == "awareness_warning"
+            or sebi_analysis.get("awareness_context_detected")
+            or sebi_analysis.get("speaker_stance") == "warning"
+        )
+    )
+    sebi_fraud_risk = float(sebi_analysis.get("composite_risk_score", 0.0)) if sebi_analysis else 0.0
+    fraud_risk = 0.0 if (is_awareness_context or not is_scam) else (sebi_fraud_risk if sebi_fraud_risk > 0 else 0.85)
+
     return {
         "contributing_signals": signals,
         "degraded_or_missing_modules": degraded_list,
@@ -235,10 +252,10 @@ def build_evidence_breakdown(
         },
         "financial_fraud": {
             "is_scam": is_scam,
-            "composite_risk_score": composite_risk,
+            "composite_risk_score": fraud_risk,
             "assessment": (
                 "Financial scam / regulatory violation detected" if is_scam
-                else ("Suspicious: Review recommended" if composite_risk >= 0.35 or bool(degraded_list)
+                else ("Suspicious: Review recommended" if fraud_risk >= 0.35 or bool(degraded_list)
                       else "No financial fraud detected")
             )
         }
@@ -269,9 +286,21 @@ def build_overall_verdict_summary(
     clean_reasoning = re.sub(r"\[HEURISTIC FALLBACK:[^\]]*\]\s*", "", raw_reasoning).strip()
     clean_reasoning = re.sub(r"\[REVIEW REQUIRED\]\s*", "", clean_reasoning).strip()
 
+    is_awareness = bool(
+        sebi_analysis.get("content_intent") == "awareness_warning"
+        or sebi_analysis.get("awareness_context_detected")
+        or sebi_analysis.get("speaker_stance") == "warning"
+        or "awareness" in verdict.lower()
+    )
+
     if is_deepfake and is_scam:
         media_desc = ", ".join(media_findings) if media_findings else "synthetic media"
         return f"Critical risk: Synthetic media detected ({media_desc}) alongside fraudulent financial solicitations. {clean_reasoning}"
+    elif is_awareness and not is_deepfake and not is_scam:
+        return f"Awareness based video: The speaker is actively educating viewers and warning against financial scams, cautioning against guaranteed return promises, and promoting investor protection. {clean_reasoning}".strip()
+    elif is_awareness and is_deepfake and not is_scam:
+        media_desc = ", ".join(media_findings) if media_findings else "synthetic media artifacts"
+        return f"Synthetic media detected by forensic detectors ({media_desc}). Spoken content was classified as an awareness based video educating viewers against fraudulent schemes: {clean_reasoning}".strip()
     elif is_deepfake:
         media_desc = ", ".join(media_findings) if media_findings else "synthetic media artifacts"
         content_desc = clean_reasoning if clean_reasoning else "No high-risk SEBI violations or scam solicitations flagged in spoken content."
@@ -430,15 +459,12 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
         if has_ai_watermark:
             vision_score = max(vision_score or 0.0, 0.999)
             has_vision_fake = True
+            has_audio_fake = True
             is_deepfake = True
         else:
-            has_vision_fake = (vision_score is not None and vision_score > vision_thresh)
-            has_audio_fake = (audio_score is not None and audio_score > audio_thresh)
+            has_vision_fake = bool(vision_score is not None and vision_score >= vision_thresh)
+            has_audio_fake = bool(audio_score is not None and audio_score >= audio_thresh)
             is_deepfake = bool(has_vision_fake or has_audio_fake)
-
-        has_audio_fake = (audio_score is not None and audio_score > audio_thresh) or has_ai_watermark
-        if has_vision_fake or has_audio_fake or has_ai_watermark:
-            is_deepfake = True
 
         is_scam = bool(llm.get("is_scam_likely", False))
         if stage9.get("any_threat_detected"):
@@ -467,9 +493,22 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
 
         fallback_used = bool(llm.get("fallback_used", False))
         
+        transcript_text = str(tx.get("transcript", "")).lower()
+        has_tx_awareness = any(p in transcript_text for p in [
+            "before investing", "every investment carries some risk", "be careful",
+            "do not trust guaranteed", "never share your otp", "staying informed", "staying safe"
+        ])
+        is_awareness = bool(
+            llm.get("content_intent") == "awareness_warning"
+            or llm.get("awareness_context_detected")
+            or llm.get("speaker_stance") == "warning"
+            or (has_tx_awareness and not is_scam)
+        )
+
         verdict = calculate_calibrated_verdict(
             is_deepfake, is_scam, composite_risk, registry.get("verdict", "not claimed"),
-            fallback_used=fallback_used, degraded_modules=degraded_modules
+            fallback_used=fallback_used, degraded_modules=degraded_modules,
+            is_awareness=is_awareness
         )
 
         timeline_track = build_timeline_risk_track(
@@ -508,6 +547,7 @@ def run_pipeline(job_id: str, temp_job_dir: str, file_path: str):
             "verdict": verdict,
             "is_deepfake": is_deepfake,
             "is_scam": is_scam,
+            "is_awareness": is_awareness,
             "composite_risk_score": composite_risk,
             "evidence_breakdown": evidence_breakdown,
             "overall_summary": overall_summary,
@@ -737,13 +777,26 @@ async def scan_text(req: TextScanRequest):
     fallback_used = llm.get("fallback_used", False)
     degraded_modules = ["stage5_llm"] if fallback_used else []
 
+    tx_text = str(req.text or "").lower()
+    has_tx_awareness = any(p in tx_text for p in [
+        "before investing", "every investment carries some risk", "be careful",
+        "do not trust guaranteed", "never share your otp", "staying informed", "staying safe"
+    ])
+    is_awareness = bool(
+        llm.get("content_intent") == "awareness_warning"
+        or llm.get("awareness_context_detected")
+        or llm.get("speaker_stance") == "warning"
+        or (has_tx_awareness and not is_scam)
+    )
+
     verdict = calculate_calibrated_verdict(
         is_deepfake=False,
         is_scam=is_scam,
         composite_risk=composite_risk,
         registry_verdict=registry.get("verdict", "not claimed"),
         fallback_used=fallback_used,
-        degraded_modules=degraded_modules
+        degraded_modules=degraded_modules,
+        is_awareness=is_awareness
     )
 
     evidence_breakdown = build_evidence_breakdown(
@@ -767,6 +820,7 @@ async def scan_text(req: TextScanRequest):
         "input_text": req.text,
         "verdict": verdict,
         "is_scam": is_scam,
+        "is_awareness": is_awareness,
         "composite_risk_score": composite_risk,
         "domain_scan": stage9.get("ocr_domain_result"),
         "sebi_analysis": llm,
@@ -843,13 +897,26 @@ def scan_audio(file: UploadFile = File(...)):
         if audio.get("status") == "error":
             degraded_modules.append("stage3_audio")
 
+        tx_audio_text = str(tx.get("transcript", "")).lower()
+        has_tx_audio_awareness = any(p in tx_audio_text for p in [
+            "before investing", "every investment carries some risk", "be careful",
+            "do not trust guaranteed", "never share your otp", "staying informed", "staying safe"
+        ])
+        is_awareness = bool(
+            llm.get("content_intent") == "awareness_warning"
+            or llm.get("awareness_context_detected")
+            or llm.get("speaker_stance") == "warning"
+            or (has_tx_audio_awareness and not is_scam)
+        )
+
         verdict = calculate_calibrated_verdict(
             is_deepfake=is_deepfake,
             is_scam=is_scam,
             composite_risk=composite_risk,
             registry_verdict=registry.get("verdict", "not claimed"),
             fallback_used=fallback_used,
-            degraded_modules=degraded_modules
+            degraded_modules=degraded_modules,
+            is_awareness=is_awareness
         )
 
         timeline_track = build_timeline_risk_track(
@@ -888,6 +955,7 @@ def scan_audio(file: UploadFile = File(...)):
             "verdict": verdict,
             "is_deepfake": is_deepfake,
             "is_scam": is_scam,
+            "is_awareness": is_awareness,
             "composite_risk_score": composite_risk,
             "overall_summary": overall_summary,
             "vision_score": None,

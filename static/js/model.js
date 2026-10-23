@@ -236,9 +236,35 @@ export function toViewModel(raw, meta = {}) {
       ? sebi.is_scam_likely
       : false;
 
+  const contentIntent = String(sebi.content_intent || raw.content_intent || '').toLowerCase();
+  const analysisStatus = String(sebi.analysis_status || raw.analysis_status || '').toLowerCase();
+  const speakerStance = String(sebi.speaker_stance || raw.speaker_stance || '').toLowerCase();
+  const awarenessDetected = Boolean(sebi.awareness_context_detected || raw.awareness_context_detected || raw.is_awareness);
+  const isScamLikely = typeof sebi.is_scam_likely === 'boolean'
+    ? sebi.is_scam_likely
+    : typeof raw.is_scam_likely === 'boolean'
+      ? raw.is_scam_likely
+      : isScam;
+
+  const transcriptText = String(raw.transcript || sebi.transcript || '').toLowerCase();
+  const txAwarenessDetected = /(?:warning against|caution(?:ing)? against|fraudulent scheme|be careful|do not trust guaranteed|never share your otp|staying informed|staying safe|awareness)/i.test(transcriptText);
+
+  const isAwareness = Boolean(
+    raw.is_awareness ||
+    sebi.awareness_context_detected ||
+    raw.awareness_context_detected ||
+    contentIntent === 'awareness_warning' ||
+    (awarenessDetected && isScamLikely !== true) ||
+    (speakerStance === 'warning' && isScamLikely !== true) ||
+    (txAwarenessDetected && isScamLikely !== true) ||
+    String(rawVerdict).toLowerCase().includes('awareness')
+  );
+
   let tier = tierFromVerdict(rawVerdict, isDegraded, isDeepfake, isScam);
   if (isDeepfake && isScam) {
     tier = TIERS.critical;
+  } else if (isAwareness && !isDeepfake && !isScam) {
+    tier = { key: 'awareness', label: 'Awareness Based Video', rank: 1, badgeClass: 'fg-badge--safe' };
   } else if (isDeepfake || isScam || hasWatermark) {
     tier = (tier.rank >= TIERS.critical.rank) ? TIERS.critical : TIERS.high;
   } else if (!rawVerdict && !isDegraded) {
@@ -253,12 +279,26 @@ export function toViewModel(raw, meta = {}) {
     }
   }
 
-  const verdictLabel = rawVerdict || (isDeepfake && !isScam ? 'Warning: Deepfake Detected' : tier.label);
+  const verdictLabel = rawVerdict || (
+    isAwareness && !isDeepfake
+      ? 'Awareness Based Video'
+      : (isDeepfake && !isScam
+        ? (isAwareness ? 'Warning: Deepfake Detected (Awareness Based Video)' : 'Warning: Deepfake Detected')
+        : tier.label)
+  );
   const clockFor = buildQuoteClock(raw);
 
   const visionScore = num(raw.vision_score);
   const audioScore = num(raw.audio_score);
-  const scamScore = num(raw.composite_risk_score);
+  const sebiRisk = num(sebi.composite_risk_score);
+  const rawRisk = num(raw.composite_risk_score);
+  const fraudRisk = num(raw.evidence_breakdown?.financial_fraud?.composite_risk_score);
+  // Strict modality separation: scamScore must represent SEBI regulatory risk only, never leaking multi-modal deepfake scores
+  const scamScore = isAwareness
+    ? 0.0
+    : (sebiRisk !== null
+      ? sebiRisk
+      : (isScam ? (fraudRisk !== null ? fraudRisk : 0.85) : 0.0));
   const flaggedAudio = arr(raw.flagged_audio_segments);
   const audioSegments = arr(raw.all_audio_segments);
   const visualHeatmap = typeof raw.heatmap_base64 === 'string'
@@ -411,23 +451,7 @@ export function toViewModel(raw, meta = {}) {
   const signalScores = sebi.signal_scores && typeof sebi.signal_scores === 'object' ? sebi.signal_scores : {};
   const totalQuotedClaims = CLAIM_GROUPS.reduce((n, g) => n + arr(sebi[g.field]).length, 0);
   const hasClaimFields = CLAIM_GROUPS.some((group) => Object.prototype.hasOwnProperty.call(sebi, group.field));
-  const hasScamResult = isScam !== null || scamScore !== null || hasClaimFields;
-
-  const contentIntent = String(sebi.content_intent || raw.content_intent || '').toLowerCase();
-  const analysisStatus = String(sebi.analysis_status || raw.analysis_status || '').toLowerCase();
-  const speakerStance = String(sebi.speaker_stance || raw.speaker_stance || '').toLowerCase();
-  const awarenessDetected = Boolean(sebi.awareness_context_detected || raw.awareness_context_detected);
-  const isScamLikely = typeof sebi.is_scam_likely === 'boolean'
-    ? sebi.is_scam_likely
-    : typeof raw.is_scam_likely === 'boolean'
-      ? raw.is_scam_likely
-      : isScam;
-
-  const isAwareness = (
-    contentIntent === 'awareness_warning' ||
-    (awarenessDetected && isScamLikely !== true) ||
-    (speakerStance === 'warning' && isScamLikely !== true)
-  );
+  const hasScamResult = isScam !== null || scamScore !== null || hasClaimFields || isAwareness;
 
   const isAmbiguous = isScam !== true && !isAwareness && (
     contentIntent === 'ambiguous' ||
@@ -455,14 +479,23 @@ export function toViewModel(raw, meta = {}) {
     quotedLabel = 'Extracted Claims for Review';
   }
 
+  const hasSebiViolation = (isScam === true && !isAwareness) || arr(sebi.specific_return_promises).length > 0 || arr(sebi.unsupported_regulatory_claims).length > 0;
+  const hasBnsViolation = (isScam === true && !isAwareness) && (arr(sebi.fee_or_transfer_requests).length > 0 || arr(sebi.credential_or_otp_requests).length > 0);
+
   const scamModality = {
     available: hasScamResult,
     title: 'Scam Check',
     status: scamStatus,
+    label: isAwareness ? 'Awareness Based Video' : scamStatus,
     score: scamScore,
-    scoreFormatted: scamScore !== null ? `${(scamScore * 100).toFixed(0)}%` : 'N/A',
+    scoreFormatted: isAwareness ? '0%' : (scamScore !== null ? `${(scamScore * 100).toFixed(0)}%` : 'N/A'),
     summary: scamSummary,
+    explanation: isAwareness
+      ? 'The speaker is warning listeners against financial scams, cautioning against fraud, or providing investor education.'
+      : scamSummary,
     isFlagged: isScam === true && !isAwareness,
+    violatesSebi: hasSebiViolation,
+    violatesBns: hasBnsViolation,
     isReview: isAmbiguous || (isDegraded && !isScam && !isAwareness),
     isAwareness: isAwareness,
     badgeClass: (isScam === true && !isAwareness)

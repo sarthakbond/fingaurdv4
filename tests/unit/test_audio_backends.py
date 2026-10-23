@@ -152,8 +152,41 @@ def test_audio_longer_than_10_seconds_handling(tmp_path):
         assert result["all_segments"][-1]["end"] == 25.0
 
 
+def test_trailing_audio_fragment_clean_handling(tmp_path):
+    """
+    Audio recordings with an arbitrary fractional tail (e.g., 20.26s) must NOT
+    zero-pad tiny trailing fragments into artificial silence that triggers false positives.
+    """
+    sr = 16000
+    # 20.26s = 4 full 5s chunks + 0.26s trailing fragment
+    duration = 20.26
+    t = np.linspace(0, duration, int(sr * duration), endpoint=False)
+    waveform = (0.3 * np.sin(2 * np.pi * 300 * t)).astype(np.float32)
+    test_file = str(tmp_path / "trailing_sample_20_26s.wav")
+    sf.write(test_file, waveform, sr)
+
+    with patch.object(GaryStaffordWav2Vec2Backend, "_load_model"):
+        backend = GaryStaffordWav2Vec2Backend(device="cpu")
+        called_chunks = []
+        def mock_predict(chunk, sample_rate=16000):
+            called_chunks.append(len(chunk))
+            return 0.01
+
+        backend.predict_chunk = mock_predict
+        result = backend.process_audio(test_file, chunk_duration=5.0)
+
+        # 4 full chunks (5s each), tail < 1.0s cleanly integrated into final segment end time
+        assert len(result["all_segments"]) == 4
+        # Every chunk passed to predict_chunk must be a full 80,000 samples (5s), never a zero-padded 16,000 stub
+        for clen in called_chunks:
+            assert clen == 80000
+        # Final segment end time must reach the exact duration of the file
+        assert result["all_segments"][-1]["end"] == pytest.approx(20.26, abs=0.01)
+        assert result["max_score"] == pytest.approx(0.01, abs=1e-3)
+
+
 def test_short_audio_clip_padding(tmp_path):
-    """Clips shorter than 1 second must be safely padded and processed without dimension errors."""
+    """Clips shorter than 1 second must be safely padded with wrap mode and processed without dimension errors."""
     sr = 16000
     short_len = int(0.4 * sr)  # 0.4s = 6400 samples
     waveform = (0.3 * np.sin(2 * np.pi * 440 * np.linspace(0, 0.4, short_len))).astype(np.float32)
@@ -284,3 +317,42 @@ def test_run_stage3_audio_loads_melodymachine_only_when_explicit(tmp_path):
                 assert res["model_id"] == "MelodyMachine/Deepfake-Audio-Detection-V2"
                 assert mock_load_mm.called
                 assert not mock_load_gs.called
+
+
+def test_acoustic_cross_validation_suppresses_out_of_domain_false_positives(tmp_path):
+    """
+    Elevated Wav2Vec2 scores on chunks with verified biological human vocal cord invariants
+    (high jitter, organic pitch std, zero vocoder artifacts) must be attenuated and unflagged.
+    Conversely, chunks with neural vocoder characteristics (low jitter, high synthetic score)
+    must remain flagged.
+    """
+    sr = 16000
+    t = np.linspace(0, 5, sr * 5, endpoint=False)
+    waveform = (0.3 * np.sin(2 * np.pi * 300 * t)).astype(np.float32)
+    test_file = str(tmp_path / "cv_test.wav")
+    sf.write(test_file, waveform, sr)
+
+    with patch.object(GaryStaffordWav2Vec2Backend, "_load_model"):
+        with patch.object(GaryStaffordWav2Vec2Backend, "predict_chunk", return_value=0.96):
+            # 1. Biological human vocal fold invariants: jitter > 0.015, synth_score <= 0.10
+            with patch("src.stages.audio_backends.acoustic_forensics.analyze_acoustic_forensics", return_value={
+                "synthetic_score": 0.02,
+                "jitter": 0.022,
+                "pitch_std": 20.0,
+                "indicators": []
+            }):
+                res_human = run_stage3_audio(test_file, job_id="test-human-cv")
+                assert res_human["max_score"] < 0.20
+                assert len(res_human["flagged_segments"]) == 0
+
+            # 2. Synthetic neural vocoder: jitter < 0.008, synth_score >= 0.85
+            with patch("src.stages.audio_backends.acoustic_forensics.analyze_acoustic_forensics", return_value={
+                "synthetic_score": 0.88,
+                "jitter": 0.005,
+                "pitch_std": 6.0,
+                "indicators": ["Unnatural vocal fold periodicity", "Robotic pitch monotonicity"]
+            }):
+                res_ai = run_stage3_audio(test_file, job_id="test-ai-cv")
+                assert res_ai["max_score"] >= 0.85
+                assert len(res_ai["flagged_segments"]) > 0
+

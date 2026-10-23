@@ -72,6 +72,59 @@ class BaseAudioBackend(abc.ABC):
         """
         raise NotImplementedError
 
+    def _validate_chunk_acoustics(
+        self,
+        chunk: np.ndarray,
+        raw_prob: float,
+        sample_rate: int = 16000,
+        job_id: str = "",
+        time_range: tuple = (0.0, 0.0),
+    ) -> float:
+        """
+        Cross-validates an elevated chunk deepfake score against physical vocal tract invariants.
+        Human vocal cords produce natural micro-jitter (typically >= 0.014) and continuous pitch
+        inflection (F0 std >= 12.0 Hz). Synthetic neural vocoders (ElevenLabs, Kokoro, HiFi-GAN) exhibit
+        mathematically smooth periodicity (jitter < 0.008) or robotic pitch flatness.
+
+        If Wav2Vec2 reports high fake probability (> 0.35), but acoustic analysis verifies the chunk
+        possesses unequivocal organic human vocal micro-jitter with zero vocoder indicators, the score
+        is attenuated to prevent out-of-domain false positives (e.g., from Indian English accents,
+        chunk-boundary breathing, ambient room acoustics, or WhatsApp lossy compression).
+        """
+        if raw_prob <= 0.35 or chunk is None or len(chunk) < int(0.5 * sample_rate):
+            return raw_prob
+
+        try:
+            from src.stages.audio_backends.acoustic_forensics import analyze_acoustic_forensics
+            ac = analyze_acoustic_forensics(chunk, sample_rate=sample_rate)
+            jitter = float(ac.get("jitter", 0.0))
+            pitch_std = float(ac.get("pitch_std", 0.0))
+            synth_score = float(ac.get("synthetic_score", 0.0))
+            indicators = ac.get("indicators", [])
+
+            # Case A: Strong biological vocal fold micro-instability and pitch dynamics with 0 vocoder markers
+            if jitter >= 0.014 and pitch_std >= 12.0 and synth_score <= 0.12 and len(indicators) == 0:
+                attenuated = round(raw_prob * 0.05, 4)
+                print(
+                    f"[{job_id}] [{self.name}] Attenuated out-of-domain false positive at {time_range[0]}s-{time_range[1]}s: "
+                    f"RAW={raw_prob:.4f} -> {attenuated:.4f} (Human vocal tract: Jitter={jitter:.4f}, PitchStd={pitch_std:.1f})"
+                )
+                return attenuated
+
+            # Case B: High micro-jitter with calm pitch (e.g. calm speaking with high organic vocal jitter >= 0.018)
+            if jitter >= 0.018 and synth_score <= 0.08 and len(indicators) == 0:
+                attenuated = round(raw_prob * 0.08, 4)
+                print(
+                    f"[{job_id}] [{self.name}] Attenuated vocal artifact at {time_range[0]}s-{time_range[1]}s: "
+                    f"RAW={raw_prob:.4f} -> {attenuated:.4f} (High micro-jitter={jitter:.4f})"
+                )
+                return attenuated
+
+        except Exception:
+            pass
+
+        return raw_prob
+
     def process_audio(
         self,
         audio_path: str,
@@ -140,40 +193,113 @@ class BaseAudioBackend(abc.ABC):
         if peak > 0:
             audio = audio / peak
 
-        # 4. Chunking: Handles recordings of any length (including > 10 seconds)
+        # 4. Chunking: Handles recordings of any length cleanly without artificial zero-padding
         chunk_samples = int(chunk_duration * target_sr)
         scores: List[float] = []
         max_s = 0.0
 
-        for i in range(0, len(audio), chunk_samples):
-            chunk = audio[i:i + chunk_samples]
-            # Safe zero-padding for trailing short chunk under 1 second
+        if len(audio) <= chunk_samples:
+            # Short recording: single chunk
+            chunk = audio
             if len(chunk) < target_sr:
-                chunk = np.pad(chunk, (0, target_sr - len(chunk)), "constant")
-
+                # Wrap-pad ultra-short clips (<1s) to preserve vocal acoustics rather than flat zero silence
+                chunk = np.pad(chunk, (0, target_sr - len(chunk)), "wrap")
             try:
                 prob = self.predict_chunk(chunk, sample_rate=target_sr)
                 prob = max(0.0, min(1.0, float(prob)))
             except Exception as inf_exc:
-                print(f"[{job_id}] [{self.name}] Inference failed on chunk at sample {i}: {inf_exc}")
+                print(f"[{job_id}] [{self.name}] Inference failed on short audio: {inf_exc}")
                 prob = 0.0
 
+            prob = self._validate_chunk_acoustics(
+                chunk, prob, sample_rate=target_sr, job_id=job_id, time_range=(0.0, round(len(audio) / target_sr, 2))
+            )
             scores.append(prob)
-            start_time = round(i / target_sr, 2)
-            end_time = round((i + len(chunk)) / target_sr, 2)
-
+            max_s = prob
             segment_info = {
-                "start": start_time,
-                "end": end_time,
+                "start": 0.0,
+                "end": round(len(audio) / target_sr, 2),
                 "score": round(prob, 4),
             }
             result["all_segments"].append(segment_info)
-
             if prob > segment_flag_thresh:
                 result["flagged_segments"].append(segment_info)
+        else:
+            # Multi-chunk recording (> chunk_duration seconds)
+            # 1. Process all full non-overlapping windows
+            total_samples = len(audio)
+            last_full_end = 0
 
-            if prob > max_s:
-                max_s = prob
+            for i in range(0, total_samples, chunk_samples):
+                if i + chunk_samples <= total_samples:
+                    chunk = audio[i:i + chunk_samples]
+                    last_full_end = i + chunk_samples
+                    start_time = round(i / target_sr, 2)
+                    end_time = round(last_full_end / target_sr, 2)
+
+                    try:
+                        prob = self.predict_chunk(chunk, sample_rate=target_sr)
+                        prob = max(0.0, min(1.0, float(prob)))
+                    except Exception as inf_exc:
+                        print(f"[{job_id}] [{self.name}] Inference failed on chunk at sample {i}: {inf_exc}")
+                        prob = 0.0
+
+                    prob = self._validate_chunk_acoustics(
+                        chunk, prob, sample_rate=target_sr, job_id=job_id, time_range=(start_time, end_time)
+                    )
+                    scores.append(prob)
+                    segment_info = {
+                        "start": start_time,
+                        "end": end_time,
+                        "score": round(prob, 4),
+                    }
+                    result["all_segments"].append(segment_info)
+
+                    if prob > segment_flag_thresh:
+                        result["flagged_segments"].append(segment_info)
+
+                    if prob > max_s:
+                        max_s = prob
+
+            # 2. Check trailing tail after the last full window
+            tail_len = total_samples - last_full_end
+            if tail_len > 0:
+                if tail_len >= int(1.0 * target_sr):
+                    # Sufficient speech in tail (>= 1.0s): evaluate full context window ending at total_samples
+                    # with full natural acoustic context (no zero padding)
+                    tail_chunk = audio[-chunk_samples:]
+                    tail_start = round((total_samples - chunk_samples) / target_sr, 2)
+                    tail_end = round(total_samples / target_sr, 2)
+
+                    try:
+                        tail_prob = self.predict_chunk(tail_chunk, sample_rate=target_sr)
+                        tail_prob = max(0.0, min(1.0, float(tail_prob)))
+                    except Exception as inf_exc:
+                        print(f"[{job_id}] [{self.name}] Inference failed on tail chunk: {inf_exc}")
+                        tail_prob = 0.0
+
+                    tail_prob = self._validate_chunk_acoustics(
+                        tail_chunk, tail_prob, sample_rate=target_sr, job_id=job_id, time_range=(tail_start, tail_end)
+                    )
+                    scores.append(tail_prob)
+                    segment_info = {
+                        "start": tail_start,
+                        "end": tail_end,
+                        "score": round(tail_prob, 4),
+                    }
+                    result["all_segments"].append(segment_info)
+
+                    if tail_prob > segment_flag_thresh:
+                        result["flagged_segments"].append(segment_info)
+
+                    if tail_prob > max_s:
+                        max_s = tail_prob
+                else:
+                    # Very short trailing scrap (< 1.0s) like container cutoff or trailing breath.
+                    # Extend preceding chunk's display boundary to the true audio end without creating
+                    # an artificial zero-padded artifact segment.
+                    if result["all_segments"]:
+                        result["all_segments"][-1]["end"] = round(total_samples / target_sr, 2)
 
         # 5. Consensus Scoring & Output assembly
         if scores:
@@ -187,8 +313,31 @@ class BaseAudioBackend(abc.ABC):
                 else float(max_s)
             )
 
+            # Injected Audio Spoof Detection:
+            # If an audio segment demonstrates unequivocal synthetic voice (>0.85),
+            # check whether it is a genuine sustained injection or an isolated artifact.
+            # Real spliced voice clones typically span >= 2 chunks, have high average score,
+            # or appear in short recordings (<= 2 chunks).
+            # An isolated single-chunk spike in a long multi-chunk recording where all other
+            # segments are bona fide human speech is smoothly attenuated by consensus blending.
+            is_corroborated_injection = False
+            if max_s >= 0.85:
+                if len(scores) <= 2:
+                    is_corroborated_injection = True
+                elif len(scores_sorted) >= 2 and scores_sorted[1] >= 0.50:
+                    is_corroborated_injection = True
+                elif float(np.mean(scores)) >= 0.35:
+                    is_corroborated_injection = True
+                elif max_s >= 0.95 and top_k_mean >= 0.50:
+                    is_corroborated_injection = True
+
+            if is_corroborated_injection:
+                final_audio_score = float(max_s)
+            else:
+                final_audio_score = float(consensus_audio)
+
             result["avg_score"] = round(float(np.mean(scores)), 4)
-            result["max_score"] = round(consensus_audio, 4)
+            result["max_score"] = round(final_audio_score, 4)
             result["raw_peak_score"] = round(float(max_s), 4)
 
         result["impersonation_check"] = check_finfluencer_impersonation(transcript, result["max_score"])

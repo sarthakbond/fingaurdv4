@@ -903,4 +903,164 @@ def test_rule5_never_label_ai_voice_as_human_when_parts_flagged():
     assert details_map["Flagged Audio Parts"] == "1 of 19"
 
 
+def test_awareness_based_video_ui_decoupled_scoring_and_labels():
+    """
+    Verifies that when an awareness/warning video is scanned:
+    1. Financial Scam Claims score is 0.0 (0%), even if composite_risk_score is elevated by media.
+    2. scamModality.label is 'Awareness Based Video'.
+    3. scamModality.isAwareness is True.
+    4. verdictLabel is 'Awareness Based Video' for authentic media, or 'Warning: Deepfake Detected (Awareness Based Video)' for deepfakes.
+    5. badgeClass is 'fg-badge--safe'.
+    """
+    # Authentic awareness video (like User Image 2)
+    awareness_payload = {
+        "verdict": "Awareness Based Video",
+        "is_deepfake": False,
+        "is_scam": False,
+        "composite_risk_score": 0.0,
+        "vision_score": 0.02,
+        "audio_score": 0.01,
+        "sebi_analysis": {
+            "content_intent": "awareness_warning",
+            "speaker_stance": "warning",
+            "awareness_context_detected": True,
+            "is_scam_likely": False,
+            "composite_risk_score": 0.0,
+            "specific_return_promises": [],
+            "urgency_scarcity_language": [],
+            "reasoning": "Educational / scam awareness context: Video warns against guaranteed profit claims and OTP sharing.",
+        },
+        "registry_check": {"verdict": "not claimed"},
+    }
+
+    vm = _run_model_js_adapt(awareness_payload)
+    scam = vm["scamModality"]
+
+    assert vm["verdictLabel"] == "Awareness Based Video"
+    assert scam["label"] == "Awareness Based Video"
+    assert scam["isAwareness"] is True
+    assert scam["score"] == 0.0
+    assert scam["scoreFormatted"] == "0%"
+    assert scam["badgeClass"] == "fg-badge--safe"
+    assert scam["isFlagged"] is False
+
+    # Deepfake awareness video: media risk is 90%, but scam claims score MUST remain 0% (decoupled!)
+    df_awareness_payload = {
+        "verdict": "Warning: Deepfake Detected (Awareness Based Video)",
+        "is_deepfake": True,
+        "is_scam": False,
+        "composite_risk_score": 0.90,
+        "vision_score": 0.03,
+        "audio_score": 0.92,
+        "sebi_analysis": {
+            "content_intent": "awareness_warning",
+            "speaker_stance": "warning",
+            "awareness_context_detected": True,
+            "is_scam_likely": False,
+            "composite_risk_score": 0.0,
+            "specific_return_promises": [],
+            "urgency_scarcity_language": [],
+            "reasoning": "Educational / scam awareness context.",
+        },
+        "registry_check": {"verdict": "not claimed"},
+    }
+
+    vm_df = _run_model_js_adapt(df_awareness_payload)
+    scam_df = vm_df["scamModality"]
+
+    assert "Awareness Based Video" in vm_df["verdictLabel"]
+    assert scam_df["label"] == "Awareness Based Video"
+    assert scam_df["isAwareness"] is True
+    assert scam_df["score"] == 0.0  # Must be 0.0, NOT 0.90!
+    assert scam_df["scoreFormatted"] == "0%"
+    assert scam_df["badgeClass"] == "fg-badge--safe"
+
+
+def test_conclusion_percentage_removal_and_suspicious_audio_tab():
+    """Verifies that executive finding cards do not show raw percentages and that
+
+    the Suspicious Audio analysis tab is implemented with acoustic anomaly details.
+    """
+    js_path = os.path.join(os.path.dirname(__file__), "..", "..", "static", "js", "redesign.js")
+    css_path = os.path.join(os.path.dirname(__file__), "..", "..", "static", "css", "redesign.css")
+
+    with open(js_path, "r", encoding="utf-8") as f:
+        js_content = f.read()
+
+    with open(css_path, "r", encoding="utf-8") as f:
+        css_content = f.read()
+
+    # 1. Assert raw percentage removed from finding cards in renderVideoResults
+    assert "${vScoreStr} · ${isVisionFake" not in js_content, "Visual finding card must not contain raw percentage"
+    assert "${aScoreStr} · ${isAudioFake" not in js_content, "Audio finding card must not contain raw percentage"
+    assert "<span>${isVisionFake ? 'Synthetic Face / Temporal Glitches Detected' : 'Authentic Camera Capture'}</span>" in js_content
+    assert "<span>${isAudioFake ? 'Synthetic Voice Clone Detected' : 'Natural Human Voice Patterns'}</span>" in js_content
+
+    # 2. Assert interactive finding card hint to view suspicious audio chunks
+    assert "card-voice-finding" in js_content
+    assert "View Sus Chunks →" in js_content
+
+    # 3. Assert dedicated Suspicious Audio tab and panel
+    assert 'id="tab-btn-audio"' in js_content
+    assert 'id="panel-audio"' in js_content
+    assert "Suspicious Audio" in js_content
+    assert "buildSuspiciousAudioHtml" in js_content
+    assert "btn-switch-to-audio-tab" in js_content
+
+    # 4. Assert CSS classes for Suspicious Audio tab
+    assert ".suspicious-audio-dossier" in css_content
+    assert ".audio-sus-hero" in css_content
+    assert ".audio-timeline-track-wrap" in css_content
+    assert ".audio-sus-card" in css_content
+
+
+def test_financial_scam_claims_card_decoupling_never_shows_90_percent_on_clean_speech():
+    """
+    Verifies that the 'Financial Scam Claims' card in the Forensic Dossier:
+    1. NEVER shows a 90% badge when speech contains no prohibited promises or is awareness content.
+    2. Correctly displays 'Awareness' or 'Compliant' with 'badge-safe'.
+    3. Has violatesSebi and violatesBns accurately set on scamModality.
+    4. Has 0.0 composite_risk_score in evidence_breakdown.financial_fraud.
+    """
+    js_path = os.path.join(os.path.dirname(__file__), "..", "..", "static", "js", "redesign.js")
+    with open(js_path, "r", encoding="utf-8") as f:
+        js_content = f.read()
+
+    # 1. Assert redesign.js card badge never shows Math.round(scam.score * 100)% when not flagged
+    assert "${scam.isAwareness ? 'Awareness' : (scam.isFlagged || (scam.score !== null && scam.score >= 0.35) ? `${Math.round(scam.score * 100)}%` : 'Compliant')}" in js_content
+
+    # 2. Assert model.js decoupling for synthetic voice with awareness speech (like user's video)
+    user_video_payload = {
+        "job_id": "user-awareness-test",
+        "verdict": "Warning: Deepfake Detected (Awareness Based Video)",
+        "is_deepfake": True,
+        "is_scam": False,
+        "composite_risk_score": 0.90,
+        "audio_score": 0.725,
+        "vision_score": 0.104,
+        "transcript": "Hello everyone. Before investing in the stock market, remember that every investment carries some risk. If someone promises to double your money in just few days or pressure you to buy a stock, immediate, be careful. Do not trust guaranteed profits, claims without proper verification. Never share your OTP, trading password or bank details with anyone. Always verify investment advice through reliable sources and take time to research before making a final decision. Remember, staying informed is your first step towards staying safe. Thank you.",
+        "sebi_analysis": {
+            "content_intent": "awareness_warning",
+            "speaker_stance": "warning",
+            "awareness_context_detected": True,
+            "is_scam_likely": False,
+            "composite_risk_score": 0.0,
+            "specific_return_promises": [],
+            "urgency_scarcity_language": [],
+            "reasoning": "Speaker is providing awareness and warning against potential scams.",
+        },
+        "registry_check": {"verdict": "not claimed"},
+    }
+
+    vm = _run_model_js_adapt(user_video_payload)
+    scam = vm["scamModality"]
+
+    assert scam["isAwareness"] is True
+    assert scam["score"] == 0.0, f"Scam score was {scam['score']} instead of 0.0"
+    assert scam["isFlagged"] is False
+    assert scam["violatesSebi"] is False
+    assert scam["violatesBns"] is False
+    assert scam["badgeClass"] == "fg-badge--safe"
+    assert scam["label"] == "Awareness Based Video"
+
 

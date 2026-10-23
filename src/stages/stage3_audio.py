@@ -59,9 +59,10 @@ def run_stage3_audio(
             result["acoustic_forensics"] = acoustic
             ac_score = acoustic.get("synthetic_score", 0.0)
 
+            backend_score = float(result.get("max_score", 0.0))
             if ai_watermark_detected:
                 # Video is confirmed 100% synthetic (Google Gemini / Veo)
-                result["max_score"] = max(result.get("max_score", 0.0), 0.96)
+                result["max_score"] = max(backend_score, 0.96)
                 result["avg_score"] = max(result.get("avg_score", 0.0), 0.94)
                 result["raw_peak_score"] = max(result.get("raw_peak_score", 0.0), 0.96)
                 result["forensic_enhancement"] = "gemini_provenance"
@@ -74,14 +75,14 @@ def run_stage3_audio(
                         "reason": "AI speech generation confirmed via Google Gemini provenance watermark & neural vocoder characteristics"
                     }
                 ]
-            elif ac_score >= 0.50:
-                # Neural TTS detected via acoustic harmonics & vocoder bandwidth compression
-                result["max_score"] = round(max(result.get("max_score", 0.0), ac_score), 4)
+            elif ac_score >= 0.75 and (backend_score > 0.25 or len(acoustic.get("indicators", [])) >= 3):
+                # Strong multi-signal Neural TTS detected (ElevenLabs / Kokoro / Gemini Voice)
+                result["max_score"] = round(max(backend_score, ac_score), 4)
                 result["raw_peak_score"] = round(max(result.get("raw_peak_score", 0.0), ac_score), 4)
                 result["forensic_enhancement"] = "acoustic_tts"
                 if not result.get("flagged_segments"):
                     duration_sec = round(len(audio_arr) / float(sr), 2)
-                    reasons = acoustic.get("indicators", []) or ["Neural TTS spectral signature"]
+                    reasons = acoustic.get("indicators", []) or ["Neural vocoder synthesis detected"]
                     result["flagged_segments"] = [
                         {
                             "start": 0.0,
@@ -90,6 +91,29 @@ def run_stage3_audio(
                             "reason": f"Neural TTS detected: {'; '.join(reasons)}"
                         }
                     ]
+            elif (
+                not ai_watermark_detected
+                and ac_score <= 0.08
+                and acoustic.get("jitter", 0.0) >= 0.015
+                and len(acoustic.get("indicators", [])) == 0
+            ):
+                # Whole-recording acoustic analysis verifies bona fide human vocal folds
+                if backend_score > 0.25:
+                    print(
+                        f"[{job_id}] Cross-modal acoustic suppression: Backend score {backend_score:.4f} "
+                        f"contradicted by confirmed human vocal tract (Jitter={acoustic.get('jitter'):.4f}, "
+                        f"PitchStd={acoustic.get('pitch_std'):.1f}, Synthetic={ac_score}). Attenuating false positive."
+                    )
+                    result["max_score"] = min(backend_score, 0.15)
+                    result["avg_score"] = min(result.get("avg_score", 0.0), 0.10)
+                    result["raw_peak_score"] = min(result.get("raw_peak_score", 0.0), 0.15)
+                    result["flagged_segments"] = []
+                    result["forensic_enhancement"] = "human_vocal_tract_verified"
+                else:
+                    result["forensic_enhancement"] = None
+            elif backend_score < 0.20:
+                # Deep learning transformer confirms natural human speech dynamics
+                result["forensic_enhancement"] = None
         except Exception as ac_err:
             print(f"[{job_id}] Acoustic forensics non-fatal warning: {ac_err}")
 

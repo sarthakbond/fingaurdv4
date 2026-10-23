@@ -91,40 +91,73 @@ def analyze_acoustic_forensics(audio: np.ndarray, sample_rate: int = 16000) -> D
             if len(rms) >= len(unvoiced_frames):
                 unvoiced_energy = float(np.mean(rms[:len(unvoiced_frames)][unvoiced_frames]))
 
-    # Scoring Heuristics calibrated on Gemini Omni / ElevenLabs vs human benchmarks:
-    sub_scores = []
+    # Calibrated Neural TTS Forensics (ElevenLabs, Gemini Voice, Kokoro vs Bona Fide Human):
+    # Prevents false alarms on mobile recordings (WhatsApp/AAC/Opus codecs & calm human voices).
+    # Requires multi-signal conjunction: real human vocal cords exhibit natural micro-jitter (>0.015),
+    # while neural vocoders synthesize unnaturally smooth mathematical periodicity.
+    indicators = []
+    suspicious_signals = 0
+    signal_weights = []
 
-    # Signal A: Low spectral flatness (< 0.040 indicates synthetic harmonic isolation)
-    if flatness < 0.038:
-        sub_scores.append(0.70)
-        indicators.append(f"Synthetic harmonic structure (spectral flatness: {flatness:.4f})")
-    elif flatness < 0.045:
-        sub_scores.append(0.40)
+    # Signal 1: Ultra-low vocal fold micro-jitter (Neural vocoder signature: jitter < 0.010)
+    # Real human speech typically has jitter in the 0.015 - 0.050 range.
+    has_human_jitter = False
+    if len(voiced_f0) > 25:
+        if jitter < 0.008:
+            suspicious_signals += 1
+            signal_weights.append(0.85)
+            indicators.append(f"Unnatural vocal fold periodicity (ultra-low micro-jitter: {jitter:.4f})")
+        elif jitter < 0.012:
+            signal_weights.append(0.35)
+        elif jitter > 0.020:
+            # Strong natural vocal cord micro-instability confirms bona fide human voice
+            has_human_jitter = True
 
-    # Signal B: Bandwidth cutoff / vocoder compression (rolloff_85 < 3300 Hz)
-    if rolloff_85 < 3250.0:
-        sub_scores.append(0.75)
-        indicators.append(f"Vocoder bandwidth compression (rolloff: {rolloff_85:.0f} Hz)")
-    elif rolloff_85 < 3400.0:
-        sub_scores.append(0.50)
+    # Signal 2: Unnatural pitch monotonicity (robotic flat intonation: F0 std < 12.0 Hz)
+    # Calm explanatory human speech commonly ranges from 18 - 30 Hz std.
+    if len(voiced_f0) > 25:
+        if pitch_std < 11.0:
+            suspicious_signals += 1
+            signal_weights.append(0.80)
+            indicators.append(f"Robotic pitch monotonicity (F0 std: {pitch_std:.1f} Hz)")
+        elif pitch_std < 14.0:
+            signal_weights.append(0.30)
 
-    # Signal C: Pitch contour smoothness / unnatural intonation
-    if len(voiced_f0) > 15:
-        if pitch_std < 22.0:
-            sub_scores.append(0.65)
-            indicators.append(f"Unnatural pitch monotonicity (F0 std: {pitch_std:.1f} Hz)")
-        elif pitch_std < 25.0:
-            sub_scores.append(0.35)
+    # Signal 3: Digital silence / unnatural absence of room noise floor in pauses (< 0.0008)
+    # Natural phone recordings have room reverb or mic noise floor > 0.005.
+    if unvoiced_energy > 0 and unvoiced_energy < 0.0008:
+        suspicious_signals += 1
+        signal_weights.append(0.70)
+        indicators.append("Digital mathematical silence in speech pauses (no ambient room acoustics)")
 
-    # Signal D: Digital silence / low room noise floor in pauses
-    if unvoiced_energy > 0 and unvoiced_energy < 0.005:
-        sub_scores.append(0.60)
-        indicators.append("Near-zero acoustic room noise floor in pauses (digital silence)")
+    # Signal 4: Artificial spectral cutoff only when paired with synthetic isolation
+    # Note: Mobile codecs (Opus/AMR/AAC) naturally roll off around 3.0-3.4 kHz, so rolloff
+    # is NEVER treated as suspicious on its own without concurring vocoder jitter/silence.
+    if rolloff_85 < 2900.0 and suspicious_signals >= 1:
+        suspicious_signals += 1
+        signal_weights.append(0.60)
+        indicators.append(f"Steep vocoder anti-aliasing cutoff (rolloff: {rolloff_85:.0f} Hz)")
 
-    if sub_scores:
-        synthetic_score = float(np.mean(sub_scores))
+    # Multi-signal conjunction fusion:
+    # Requires at least 2 concurring suspicious anomalies to reach moderate suspicion,
+    # and 3 concurring anomalies for high confidence neural TTS.
+    # Biological vocal micro-jitter (>0.020) physically disproves neural vocoder generation.
+    if has_human_jitter:
+        suspicious_signals = max(0, suspicious_signals - 1)
+
+    if has_human_jitter and suspicious_signals < 3:
+        # Physical biological vocal fold instability guarantees natural human acoustics
+        synthetic_score = 0.02
+        indicators = []
+    elif suspicious_signals >= 3:
+        synthetic_score = float(np.clip(np.mean([w for w in signal_weights if w > 0]), 0.75, 0.95))
+    elif suspicious_signals == 2:
+        synthetic_score = float(np.clip(np.mean([w for w in signal_weights if w > 0]), 0.35, 0.50))
+    elif suspicious_signals == 1:
+        synthetic_score = float(np.clip(max(signal_weights) * 0.35, 0.10, 0.25))
     else:
-        synthetic_score = 0.05
+        # Isolated single codec effects or natural human vocal flutter -> authentic
+        synthetic_score = 0.02
 
     return {
         "synthetic_score": round(synthetic_score, 4),

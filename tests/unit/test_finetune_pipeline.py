@@ -150,7 +150,7 @@ def test_production_backend_remains_unchanged():
     assert backend.is_finetuned is False
     assert "Original Pretrained Hugging Face" in backend.checkpoint_source
     assert backend.weights_path.endswith(".safetensors")
-    assert get_vision_threshold() == 0.60
+    assert get_vision_threshold() == 0.75
     backend.close()
 
 
